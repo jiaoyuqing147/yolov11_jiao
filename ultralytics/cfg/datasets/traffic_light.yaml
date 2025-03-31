@@ -1,0 +1,6 @@
+train: W:/Jack_datasets/S2TLD/S2TLD/S2TLD720x1280/normal_2/COCO/images/train2017
+val: W:/Jack_datasets/S2TLD/S2TLD/S2TLD720x1280/normal_2/COCO/images/val2017
+test: W:/Jack_datasets/S2TLD/S2TLD/S2TLD720x1280/normal_2/COCO/images/test2017
+
+nc: 4  # 你的类别数量
+names: ["red", "yellow", "green", "off"]  # 交通灯类别名称
