@@ -1,0 +1,6 @@
+train: D:/Jiao/dataset/S2TLDJIAOTONGDENG/COCO/images/train2017
+val: D:/Jiao/dataset/S2TLDJIAOTONGDENG/COCO/images/val2017
+test: D:/Jiao/dataset/S2TLDJIAOTONGDENG/COCO/images/test2017
+
+nc: 4  # 你的类别数量
+names: ["red", "yellow", "green", "off"]  # 交通灯类别名称
