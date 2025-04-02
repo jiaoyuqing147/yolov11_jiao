@@ -2,11 +2,13 @@ from ultralytics import YOLO
 
 if __name__ == '__main__':  # ✅ 解决 Windows 多进程问题
     # 1️⃣ 从零开始训练 YOLOv11
-    model = YOLO("yolo11.yaml")  # ✅ 确保路径正确
 
+    # model = YOLO("yolo11.yaml")  # ✅ 确保路径正确
+    model = YOLO("ultralytics/cfg/models/11/yolo11_jack.yaml")
     # 2️⃣ 训练模型
     train_results = model.train(
-        data="traffic_light_myxlab.yaml",  # ✅ 确保数据集路径正确
+        #data="traffic_light_myxlab.yaml",  # ✅ 确保数据集路径正确
+        data="traffic_light.yaml",  # ✅ 确保数据集路径正确
         epochs=100,  # 训练轮数
         imgsz=640,  # ✅ 建议尝试 960 以提高小目标检测能力
         device="cuda",  # ✅ 使用 GPU 训练
