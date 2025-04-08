@@ -22,6 +22,7 @@ __all__ = (
     "Concat",
     "RepConv",
     "Index",
+    "DepthwiseSeparableConv",#from jackjiao
 )
 
 
@@ -348,3 +349,15 @@ class Index(nn.Module):
         Expects a list of tensors as input.
         """
         return x[self.index]
+
+
+class DepthwiseSeparableConv(nn.Module):#from jackjiao
+    def __init__(self, c1, c2, k=3, s=1, act=True):
+        super().__init__()
+        self.depthwise = Conv(c1, c1, k, s, g=c1, act=act)  # Depthwise
+        self.pointwise = Conv(c1, c2, 1, 1, act=act)         # Pointwise (1x1)
+
+    def forward(self, x):
+        x = self.depthwise(x)
+        x = self.pointwise(x)
+        return x
