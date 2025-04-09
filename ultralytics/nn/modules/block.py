@@ -50,6 +50,8 @@ __all__ = (
     "PSA",
     "SCDown",
     "TorchVision",
+    "ShuffleBlock",#from jack
+    "C3LiteShuffle",#from jack
 )
 
 
@@ -1154,3 +1156,51 @@ class TorchVision(nn.Module):
         else:
             y = self.m(x)
         return y
+
+
+class ShuffleBlock(nn.Module):#from jackjiao
+    """
+    简化版 ShuffleNetV2 单元
+    """
+    def __init__(self, channels):
+        super().__init__()
+        self.branch1 = nn.Sequential(
+            nn.Conv2d(channels // 2, channels // 2, kernel_size=1, stride=1, bias=False),
+            nn.BatchNorm2d(channels // 2),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(channels // 2, channels // 2, kernel_size=3, stride=1, padding=1, groups=channels // 2, bias=False),
+            nn.BatchNorm2d(channels // 2),
+            nn.Conv2d(channels // 2, channels // 2, kernel_size=1, stride=1, bias=False),
+            nn.BatchNorm2d(channels // 2),
+            nn.ReLU(inplace=True),
+        )
+
+    def channel_shuffle(self, x):
+        b, c, h, w = x.size()
+        x = x.reshape(b, 2, c // 2, h, w)
+        x = x.permute(0, 2, 1, 3, 4).reshape(b, c, h, w)
+        return x
+
+    def forward(self, x):
+        x1, x2 = x.chunk(2, dim=1)
+        out = torch.cat((x1, self.branch1(x2)), dim=1)
+        return self.channel_shuffle(out)
+
+
+class C3LiteShuffle(nn.Module):#from jackjiao
+    """
+    替代 C3k2 的轻量模块：由 Depthwise Separable Conv + ShuffleNetV2 组成
+    """
+    def __init__(self, c1, c2, n=1, e=0.5):
+        super().__init__()
+        c_ = int(c2 * e)  # hidden channels
+        from .conv import DepthwiseSeparableConv as DSConv
+
+        self.cv1 = DSConv(c1, c_, 1, 1)  # 入口降通道
+        self.cv2 = DSConv((2 + n) * c_, c2, 1, 1)  # 出口融合
+        self.m = nn.ModuleList(ShuffleBlock(c_) for _ in range(n))
+
+    def forward(self, x):
+        y = list(self.cv1(x).chunk(2, 1))  # 通道切分
+        y.extend(m(y[-1]) for m in self.m)
+        return self.cv2(torch.cat(y, dim=1))
