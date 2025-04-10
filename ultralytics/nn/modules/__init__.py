@@ -57,6 +57,14 @@ from .block import (
     ResNetLayer,
     SCDown,
     TorchVision,
+    ShuffleBlock,    #from jack
+    C3LiteShuffle,   #from jack
+    ECA,   #from jack
+    ConvECA,   #from jack
+    GhostSPPF,   #from jack
+    C3k2Lite,
+    ShuffleV2Block,
+    C2ECA,
 )
 from .conv import (
     CBAM,
@@ -73,6 +81,7 @@ from .conv import (
     LightConv,
     RepConv,
     SpatialAttention,
+    DWSConv, #from jackjiao
 )
 from .head import OBB, Classify, Detect, Pose, RTDETRDecoder, Segment, WorldDetect, v10Detect
 from .transformer import (
@@ -160,4 +169,11 @@ __all__ = (
     "PSA",
     "TorchVision",
     "Index",
+    "GhostSPPF",               # 👈 新加
+    "DWSConv",  # 👈 新加
+    "ShuffleV2Block",            # 👈 新加
+    "C3k2Lite",           # 👈 新加
+    "ECA",   # 👈 新加
+    "ConvECA",   # 👈 新加
+    "C2ECA",
 )

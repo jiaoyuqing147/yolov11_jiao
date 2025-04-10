@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 from ultralytics.utils.torch_utils import fuse_conv_and_bn
 
-from .conv import Conv, DWConv, GhostConv, LightConv, RepConv, autopad
+from .conv import Conv, DWConv, GhostConv, LightConv, RepConv, DWSConv , autopad
 from .transformer import TransformerBlock
 
 __all__ = (
@@ -52,6 +52,12 @@ __all__ = (
     "TorchVision",
     "ShuffleBlock",#from jack
     "C3LiteShuffle",#from jack
+    "GhostSPPF", #from jack
+    "ConvECA", #from jack
+    "ECA", #from jack
+    "ShuffleV2Block",
+    "C3k2Lite",
+    "C2ECA",
 )
 
 
@@ -1158,18 +1164,23 @@ class TorchVision(nn.Module):
         return y
 
 
-class ShuffleBlock(nn.Module):#from jackjiao
+class ShuffleBlock(nn.Module):
     """
-    简化版 ShuffleNetV2 单元
+    简化版 ShuffleNetV2 单元，具备通道数合法性检查。
+    输入通道必须能被 2 整除，且 >= 8。
     """
     def __init__(self, channels):
         super().__init__()
+        assert channels >= 8 and channels % 2 == 0, f"❌ ShuffleBlock 输入通道必须 ≥8 且可整除2，当前: {channels}"
+
         self.branch1 = nn.Sequential(
             nn.Conv2d(channels // 2, channels // 2, kernel_size=1, stride=1, bias=False),
             nn.BatchNorm2d(channels // 2),
             nn.ReLU(inplace=True),
+
             nn.Conv2d(channels // 2, channels // 2, kernel_size=3, stride=1, padding=1, groups=channels // 2, bias=False),
             nn.BatchNorm2d(channels // 2),
+
             nn.Conv2d(channels // 2, channels // 2, kernel_size=1, stride=1, bias=False),
             nn.BatchNorm2d(channels // 2),
             nn.ReLU(inplace=True),
@@ -1182,25 +1193,299 @@ class ShuffleBlock(nn.Module):#from jackjiao
         return x
 
     def forward(self, x):
+        assert x.shape[1] % 2 == 0 and x.shape[1] >= 8, f"❌ 输入通道太小，无法进行chunk: {x.shape}"
         x1, x2 = x.chunk(2, dim=1)
         out = torch.cat((x1, self.branch1(x2)), dim=1)
         return self.channel_shuffle(out)
 
 
-class C3LiteShuffle(nn.Module):#from jackjiao
+class C3LiteShuffle(nn.Module): # from jack 代码设计有问题，通道数总是出问题，暂时弃用
     """
-    替代 C3k2 的轻量模块：由 Depthwise Separable Conv + ShuffleNetV2 组成
+    替代 C3k2 的轻量模块，由 Depthwise Separable Conv + 多个 ShuffleBlock 组成。
+    自动确保中间通道不小于 min_channels，避免 chunk 报错。
     """
-    def __init__(self, c1, c2, n=1, e=0.5):
+    def __init__(self, c1, c2, n=1, shortcut=False, e=0.5, min_channels=64):
         super().__init__()
-        c_ = int(c2 * e)  # hidden channels
         from .conv import DepthwiseSeparableConv as DSConv
 
-        self.cv1 = DSConv(c1, c_, 1, 1)  # 入口降通道
-        self.cv2 = DSConv((2 + n) * c_, c2, 1, 1)  # 出口融合
+        c_ = max(min_channels, int(c2 * e))
+        c_ = c_ + (c_ % 2)  # 保证是偶数，防止 chunk 报错
+
+        self.cv1 = DSConv(c1, c_, 1, 1)
+        self.cv2 = DSConv((2 + n) * c_, c2, 1, 1)
         self.m = nn.ModuleList(ShuffleBlock(c_) for _ in range(n))
+        self.shortcut = shortcut
 
     def forward(self, x):
-        y = list(self.cv1(x).chunk(2, 1))  # 通道切分
+        y = list(self.cv1(x).chunk(2, 1))
         y.extend(m(y[-1]) for m in self.m)
-        return self.cv2(torch.cat(y, dim=1))
+        out = self.cv2(torch.cat(y, dim=1))
+        return x + out if self.shortcut and x.shape == out.shape else out
+
+
+
+class GhostSPPF(nn.Module):# from jack
+    """
+    Ghost Spatial Pyramid Pooling - Fast (GhostSPPF)，用于替代传统 SPPF，实现更轻量化。
+    """
+    def __init__(self, c1, c2, k=5):
+        """
+        初始化 GhostSPPF 模块。
+        :param c1: 输入通道数
+        :param c2: 输出通道数
+        :param k: 最大池化核大小，默认 5
+        """
+        super().__init__()
+        c_ = c1 // 2  # 中间通道数压缩
+        self.cv1 = GhostConv(c1, c_, 1, 1)
+        self.cv2 = GhostConv(c_ * 4, c2, 1, 1)
+        self.m = nn.MaxPool2d(kernel_size=k, stride=1, padding=k // 2)
+
+    def forward(self, x):
+        y = [self.cv1(x)]
+        for _ in range(3):
+            y.append(self.m(y[-1]))
+        return self.cv2(torch.cat(y, 1))
+
+
+class ECA(nn.Module):#from jack
+    """Efficient Channel Attention (ECA) module"""
+    def __init__(self, channels, k_size=3):
+        super().__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.conv = nn.Conv1d(1, 1, kernel_size=k_size, padding=(k_size - 1) // 2, bias=False)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        y = self.avg_pool(x)  # [B, C, 1, 1]
+        y = self.conv(y.squeeze(-1).transpose(-1, -2))  # [B, C, 1] -> [B, 1, C] -> Conv1D -> [B, 1, C]
+        y = self.sigmoid(y).transpose(-1, -2).unsqueeze(-1)  # -> [B, C, 1, 1]
+        return x * y.expand_as(x)
+
+
+class ConvECA(nn.Module):#不知道为啥，参数量巨大
+    """
+    升级版 ConvECA，支持 n 层重复（用于替代 C2PSA）。
+    每一层 = Conv(1x1) + ECA 注意力。
+    """
+    def __init__(self, c, n=1):
+        super().__init__()
+        self.blocks = nn.Sequential(*[
+            nn.Sequential(
+                Conv(c, c, 1, 1),
+                ECA(c)
+            ) for _ in range(n)
+        ])
+
+    def forward(self, x):
+        return self.blocks(x)
+
+
+class ShuffleV2Block(nn.Module):
+    """ShuffleNetV2 block with integrated channel shuffle"""
+
+    def __init__(self, inp, oup, stride=1):
+        super().__init__()
+        self.stride = stride
+        branch_features = oup // 2
+        assert stride in [1, 2]
+
+        if stride == 1:
+            self.branch2 = nn.Sequential(
+                nn.Conv2d(branch_features, branch_features, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(branch_features),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(branch_features, branch_features, 3, 1, 1, groups=branch_features, bias=False),
+                nn.BatchNorm2d(branch_features),
+                nn.Conv2d(branch_features, branch_features, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(branch_features),
+                nn.ReLU(inplace=True),
+            )
+        else:
+            self.branch1 = nn.Sequential(
+                nn.Conv2d(inp, branch_features, 3, stride, 1, groups=inp, bias=False),
+                nn.BatchNorm2d(branch_features),
+                nn.Conv2d(branch_features, branch_features, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(branch_features),
+                nn.ReLU(inplace=True),
+            )
+            self.branch2 = nn.Sequential(
+                nn.Conv2d(inp, branch_features, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(branch_features),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(branch_features, branch_features, 3, stride, 1, groups=branch_features, bias=False),
+                nn.BatchNorm2d(branch_features),
+                nn.Conv2d(branch_features, branch_features, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(branch_features),
+                nn.ReLU(inplace=True),
+            )
+
+    def forward(self, x):
+        if self.stride == 1:
+            x1, x2 = x.chunk(2, dim=1)
+            out = torch.cat((x1, self.branch2(x2)), dim=1)
+        else:
+            out = torch.cat((self.branch1(x), self.branch2(x)), dim=1)
+        return self._channel_shuffle(out, 2)
+
+    @staticmethod
+    def _channel_shuffle(x, groups):
+        """Channel shuffle operation used in ShuffleNetV2"""
+        b, c, h, w = x.size()
+        cpg = c // groups
+        x = x.view(b, groups, cpg, h, w)
+        x = x.permute(0, 2, 1, 3, 4).contiguous()
+        return x.view(b, c, h, w)
+
+
+class C3k2Lite(nn.Module):
+    """Lightweight C3k2 module using DWSConv and ShuffleNetV2 Block"""
+
+    def __init__(self, c1, c2, n=1, shortcut=False, e=0.5):  # ← 加上 shortcut 参数
+        super().__init__()
+        self.c = int(c2 * e)
+        self.cv1 = DWSConv(c1, 2 * self.c, k=1, p=0)
+        self.cv2 = DWSConv((2 + n) * self.c, c2, k=1, p=0)
+        self.m = nn.ModuleList(ShuffleV2Block(self.c, self.c) for _ in range(n))  # Shortcut 目前忽略
+
+    def forward(self, x):
+        y = list(self.cv1(x).chunk(2, 1))
+        y.extend(m(y[-1]) for m in self.m)
+        return self.cv2(torch.cat(y, 1))
+
+
+# class C2ECA(nn.Module): #from jack，由于我写的ConvECA参数量巨大，所以改用这个
+#     def __init__(self, c1, c2, n=1, e=0.5):
+#         super().__init__()
+#         assert c1 == c2
+#         self.c = int(c1 * e)
+#         self.cv1 = Conv(c1, 2 * self.c, 1, 1)
+#         self.cv2 = Conv(2 * self.c, c1, 1)
+#         self.m = nn.Sequential(*[ECA(self.c) for _ in range(n)])
+#
+#     def forward(self, x):
+#         a, b = self.cv1(x).split((self.c, self.c), dim=1)
+#         b = self.m(b)
+#         return self.cv2(torch.cat((a, b), 1))
+
+# class C2ECA(nn.Module):
+#     def __init__(self, c1, n=1, e=0.5):
+#         """Initialize the C2ECA module."""
+#         super().__init__()
+#
+#         # Ensure c1 == c2 for this module
+#         c2 = c1  # Automatically set c2 equal to c1
+#
+#         self.c = int(c1 * e)  # Expansion ratio, creates intermediate channels
+#         self.cv1 = Conv(c1, 2 * self.c, 1, 1)  # 1x1 conv to expand channels
+#         self.cv2 = Conv(2 * self.c, c1, 1)  # 1x1 conv to reduce channels back to c1
+#
+#         # Create n PSA blocks (Attention mechanism)
+#         self.m = nn.Sequential(*[ECA(self.c) for _ in range(n)])
+#
+#     def forward(self, x):
+#         """Forward pass of C2ECA."""
+#         a, b = self.cv1(x).split((self.c, self.c), dim=1)  # Split channels into two parts
+#         b = self.m(b)  # Apply attention mechanism to second part
+#         return self.cv2(torch.cat((a, b), 1))  # Concatenate the two parts and apply final convolution
+
+
+# class C2ECA(nn.Module):#无论是ECA+ ConvECA还是加 C2ECA，参数量都巨大，重新写吧
+#     """
+#     C2ECA module with ECA mechanism for efficient feature extraction and processing.
+#
+#     This module replaces the PSABlock mechanism from the C2PSA module with an ECA-based attention mechanism.
+#     The output features will have the same size and channels as the C2PSA output.
+#
+#     Attributes:
+#         c (int): Number of hidden channels.
+#         cv1 (Conv): 1x1 convolution layer to reduce the number of input channels to 2*c.
+#         cv2 (Conv): 1x1 convolution layer to reduce the number of output channels to c1.
+#         eca (ECA): Efficient Channel Attention mechanism.
+#
+#     Methods:
+#         forward: Performs a forward pass through the C2ECA module, applying ECA for efficient feature processing.
+#     """
+#
+#     def __init__(self, c1, c2, n=1, e=0.5):
+#         """Initializes the C2ECA module with specified input/output channels, number of layers, and expansion ratio."""
+#         super().__init__()
+#         assert c1 == c2
+#         self.c = int(c1 * e)  # Compute the hidden channels based on expansion factor
+#         self.cv1 = nn.Conv2d(c1, 2 * self.c, 1, 1)  # First 1x1 convolution to increase channels
+#         self.cv2 = nn.Conv2d(2 * self.c, c1, 1)  # Second 1x1 convolution to reduce back to original channels
+#
+#         # Replace the PSABlock with the ECA attention mechanism
+#         self.eca = ECA(self.c)  # ECA is applied to the second half of the channels
+#
+#     def forward(self, x):
+#         """Processes the input tensor 'x' through ECA and returns the transformed tensor."""
+#         a, b = self.cv1(x).split((self.c, self.c), dim=1)  # Split the features into two parts
+#         b = self.eca(b)  # Apply ECA attention to the second part
+#         return self.cv2(torch.cat((a, b), 1))  # Concatenate the two parts and apply final 1x1 convolution
+
+class ECABlock(nn.Module):
+    """
+    Efficient Channel Attention Block (ECA), mimicking the PSABlock structure.
+
+    This block applies 1D convolution-based channel attention and a lightweight feed-forward network.
+
+    Args:
+        c (int): Number of input/output channels.
+        k_size (int): Kernel size for 1D convolution to model cross-channel interaction.
+        shortcut (bool): Whether to add residual connection.
+    """
+    def __init__(self, c, k_size=3, shortcut=True):
+        super().__init__()
+        self.shortcut = shortcut
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)  # Global context per channel
+        self.conv1d = nn.Conv1d(1, 1, kernel_size=k_size, padding=(k_size - 1) // 2, bias=False)
+        self.sigmoid = nn.Sigmoid()
+
+        self.ffn = nn.Sequential(
+            nn.Conv2d(c, c * 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(c * 2, c, 1)
+        )
+
+    def forward(self, x):
+        residual = x
+
+        # Channel attention
+        y = self.avg_pool(x)              # [B, C, 1, 1]
+        y = self.conv1d(y.squeeze(-1).transpose(-1, -2))  # -> [B, 1, C]
+        y = self.sigmoid(y).transpose(-1, -2).unsqueeze(-1)  # -> [B, C, 1, 1]
+        x = x * y.expand_as(x)            # Scale feature maps
+
+        # FFN
+        x = self.ffn(x)
+
+        # Add residual if needed
+        return x + residual if self.shortcut else x
+
+
+class C2ECA(nn.Module):
+    """
+    C2ECA module (CSP-style + multiple ECABlocks) for efficient channel attention.
+
+    Args:
+        c1 (int): Input channels (must equal output).
+        c2 (int): Output channels (must equal input).
+        n (int): Number of ECABlocks to stack.
+        e (float): Expansion ratio for internal channel split.
+        k_size (int): Kernel size for 1D conv in ECA.
+    """
+    def __init__(self, c1, c2, n=1, e=0.5, k_size=3):
+        super().__init__()
+        assert c1 == c2, "Input and output channels must match for CSP"
+        self.c = int(c1 * e)
+        self.cv1 = nn.Conv2d(c1, 2 * self.c, kernel_size=1)
+        self.blocks = nn.Sequential(*[ECABlock(self.c, k_size=k_size) for _ in range(n)])
+        self.cv2 = nn.Conv2d(2 * self.c, c1, kernel_size=1)
+
+    def forward(self, x):
+        a, b = self.cv1(x).split((self.c, self.c), dim=1)
+        b = self.blocks(b)
+        return self.cv2(torch.cat((a, b), dim=1))
+
+

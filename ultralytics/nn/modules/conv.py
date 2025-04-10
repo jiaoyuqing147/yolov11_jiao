@@ -22,7 +22,7 @@ __all__ = (
     "Concat",
     "RepConv",
     "Index",
-    "DepthwiseSeparableConv",#from jackjiao
+    "DWSConv", #from jackjiao
 )
 
 
@@ -351,13 +351,59 @@ class Index(nn.Module):
         return x[self.index]
 
 
-class DepthwiseSeparableConv(nn.Module):#from jackjiao
-    def __init__(self, c1, c2, k=3, s=1, act=True):
+# class DepthwiseSeparableConv(nn.Module):#from jackjiao
+#     def __init__(self, c1, c2, k=3, s=1, act=True):
+#         super().__init__()
+#         self.depthwise = Conv(c1, c1, k, s, g=c1, act=act)  # Depthwise
+#         self.pointwise = Conv(c1, c2, 1, 1, act=act)         # Pointwise (1x1)
+#
+#     def forward(self, x):
+#         x = self.depthwise(x)
+#         x = self.pointwise(x)
+#         return x
+
+class DepthwiseSeparableConv(nn.Module):#暂时先不用
+    def __init__(self, c1, c2, k=1, s=1, act=True):
         super().__init__()
-        self.depthwise = Conv(c1, c1, k, s, g=c1, act=act)  # Depthwise
-        self.pointwise = Conv(c1, c2, 1, 1, act=act)         # Pointwise (1x1)
+        # depthwise: groups = 输入通道数
+        self.depthwise = nn.Sequential(
+            nn.Conv2d(c1, c1, k, s, padding=k // 2, groups=c1, bias=False),
+            nn.BatchNorm2d(c1),
+            nn.SiLU() if act else nn.Identity()
+        )
+        # pointwise
+        self.pointwise = nn.Sequential(
+            nn.Conv2d(c1, c2, 1, 1, bias=False),
+            nn.BatchNorm2d(c2),
+            nn.SiLU() if act else nn.Identity()
+        )
 
     def forward(self, x):
-        x = self.depthwise(x)
-        x = self.pointwise(x)
-        return x
+        return self.pointwise(self.depthwise(x))
+
+
+# class DWSConv(nn.Module):
+#     """Depthwise Separable Convolution"""
+#
+#     def __init__(self, c1, c2, k=3, s=1, p=1):
+#         super().__init__()
+#         self.depthwise = nn.Conv2d(c1, c1, kernel_size=k, stride=s, padding=p, groups=c1, bias=False)
+#         self.pointwise = nn.Conv2d(c1, c2, kernel_size=1, stride=1, bias=False)
+#         self.bn = nn.BatchNorm2d(c2)
+#         self.act = nn.ReLU(inplace=True)
+#
+#     def forward(self, x):
+#         return self.act(self.bn(self.pointwise(self.depthwise(x))))
+
+class DWSConv(nn.Module):
+    """Depthwise Separable Convolution"""
+
+    def __init__(self, c1, c2, k=3, s=1, p=None, act=True):
+        super().__init__()
+        self.depthwise = nn.Conv2d(c1, c1, kernel_size=k, stride=s, padding=autopad(k, p), groups=c1, bias=False)
+        self.pointwise = nn.Conv2d(c1, c2, kernel_size=1, stride=1, bias=False)
+        self.bn = nn.BatchNorm2d(c2)
+        self.act = nn.SiLU() if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+
+    def forward(self, x):
+        return self.act(self.bn(self.pointwise(self.depthwise(x))))
