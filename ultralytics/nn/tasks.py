@@ -1,5 +1,5 @@
 # Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
-
+from .Addmodules import *
 import contextlib
 import pickle
 import re
@@ -135,16 +135,43 @@ class BaseModel(nn.Module):
             return self._predict_augment(x)
         return self._predict_once(x, profile, visualize, embed)
 
+    # def _predict_once(self, x, profile=False, visualize=False, embed=None):
+    #     """
+    #     Perform a forward pass through the network.
+    #
+    #     Args:
+    #         x (torch.Tensor): The input tensor to the model.
+    #         profile (bool):  Print the computation time of each layer if True, defaults to False.
+    #         visualize (bool): Save the feature maps of the model if True, defaults to False.
+    #         embed (list, optional): A list of feature vectors/embeddings to return.
+    #
+    #     Returns:
+    #         (torch.Tensor): The last output of the model.
+    #     """
+    #     y, dt, embeddings = [], [], []  # outputs
+    #     for m in self.model:
+    #         if m.f != -1:  # if not from previous layer
+    #             x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
+    #         if profile:
+    #             self._profile_one_layer(m, x, dt)
+    #         x = m(x)  # run
+    #         y.append(x if m.i in self.save else None)  # save output
+    #         if visualize:
+    #             feature_visualization(x, m.type, m.i, save_dir=visualize)
+    #         if embed and m.i in embed:
+    #             embeddings.append(nn.functional.adaptive_avg_pool2d(x, (1, 1)).squeeze(-1).squeeze(-1))  # flatten
+    #             if m.i == max(embed):
+    #                 return torch.unbind(torch.cat(embeddings, 1), dim=0)
+    #     return x
+    # 使用新的_predict_once函数
     def _predict_once(self, x, profile=False, visualize=False, embed=None):
         """
         Perform a forward pass through the network.
-
         Args:
             x (torch.Tensor): The input tensor to the model.
             profile (bool):  Print the computation time of each layer if True, defaults to False.
             visualize (bool): Save the feature maps of the model if True, defaults to False.
             embed (list, optional): A list of feature vectors/embeddings to return.
-
         Returns:
             (torch.Tensor): The last output of the model.
         """
@@ -154,8 +181,19 @@ class BaseModel(nn.Module):
                 x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
             if profile:
                 self._profile_one_layer(m, x, dt)
-            x = m(x)  # run
-            y.append(x if m.i in self.save else None)  # save output
+            if hasattr(m, 'backbone'):
+                x = m(x)
+                if len(x) != 5:  # 0 - 5
+                    x.insert(0, None)
+                for index, i in enumerate(x):
+                    if index in self.save:
+                        y.append(i)
+                    else:
+                        y.append(None)
+                x = x[-1]  # 最后一个输出传给下一层
+            else:
+                x = m(x)  # run
+                y.append(x if m.i in self.save else None)  # save output
             if visualize:
                 feature_visualization(x, m.type, m.i, save_dir=visualize)
             if embed and m.i in embed:
@@ -962,6 +1000,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         LOGGER.info(f"\n{'':>3}{'from':>20}{'n':>3}{'params':>10}  {'module':<45}{'arguments':<30}")
     ch = [ch]
     layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
+
+    backbone = False  # 主干的开关   MobileNetv4 jackjiao
+
     base_modules = frozenset(
         {
             Classify,
@@ -1025,7 +1066,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C2ECA,
         }
     )
+
     for i, (f, n, m, args) in enumerate(d["backbone"] + d["head"]):  # from, number, module, args
+        t = m   #MobileNetv4 jackjiao
         m = (
             getattr(torch.nn, m[3:])
             if "nn." in m
@@ -1054,6 +1097,20 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 legacy = False
                 if scale in "mlx":
                     args[3] = True
+
+
+        elif m is Bi_FPN:             #add BiFPN jack 为了确保Bi_FPN 模块知道它需要融合多少个输入特征图
+            length = len([ch[x] for x in f])
+            args = [length]
+        # start 主干网络下面的代码为自己手动添加,源代码中不包含, 字典中包含了所有的主干版本,根据你自己需要的模型添加对应的版本即可.
+        elif m in {
+            MobileNetV4ConvSmall, MobileNetV4HybridMedium, MobileNetV4ConvMedium, MobileNetV4ConvLarge,
+            MobileNetV4HybridLarge,
+        }:
+            m = m(*args)
+            c2 = m.width_list  # 返回通道列表
+            backbone = True
+        # end-----------------------------------------主干-----------------------------------------------估计是主干到这里结束了
         elif m is AIFI:
             args = [ch[f], *args]
         elif m in frozenset({HGStem, HGBlock}):
@@ -1089,17 +1146,45 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         else:
             c2 = ch[f]
 
-        m_ = nn.Sequential(*(m(*args) for _ in range(n))) if n > 1 else m(*args)  # module
-        t = str(m)[8:-2].replace("__main__.", "")  # module type
-        m_.np = sum(x.numel() for x in m_.parameters())  # number params
-        m_.i, m_.f, m_.type = i, f, t  # attach index, 'from' index, type
+        # m_ = nn.Sequential(*(m(*args) for _ in range(n))) if n > 1 else m(*args)  # module
+        # t = str(m)[8:-2].replace("__main__.", "")  # module type
+        # m_.np = sum(x.numel() for x in m_.parameters())  # number params
+        # m_.i, m_.f, m_.type = i, f, t  # attach index, 'from' index, type
+        #替代上面四行代码 from jack
+        if isinstance(c2, list):
+            m_ = m
+            m_.backbone = True
+        else:
+            m_ = nn.Sequential(*(m(*args) for _ in range(n))) if n > 1 else m(*args)  # module
+            t = str(m)[8:-2].replace('__main__.', '')  # module type
+
+        m.np = sum(x.numel() for x in m_.parameters())  # number params
+        m_.i, m_.f, m_.type = i + 4 if backbone else i, f, t  # attach index, 'from' index, type
+        #替代上面四行代码
+
+        # if verbose:
+        #     LOGGER.info(f"{i:>3}{str(f):>20}{n_:>3}{m_.np:10.0f}  {t:<45}{str(args):<30}")  # print
+        # save.extend(x % i for x in ([f] if isinstance(f, int) else f) if x != -1)  # append to savelist
+        # layers.append(m_)
+        # if i == 0:
+        #     ch = []
+        # ch.append(c2)
+        #替换上面这块注释掉的代码
         if verbose:
-            LOGGER.info(f"{i:>3}{str(f):>20}{n_:>3}{m_.np:10.0f}  {t:<45}{str(args):<30}")  # print
-        save.extend(x % i for x in ([f] if isinstance(f, int) else f) if x != -1)  # append to savelist
+            LOGGER.info(f'{i:>3}{str(f):>20}{n_:>3}{m.np:10.0f}  {t:<45}{str(args):<30}')  # print
+
+        save.extend(
+            x % (i + 4 if backbone else i) for x in ([f] if isinstance(f, int) else f) if x != -1)  # append to savelist
         layers.append(m_)
         if i == 0:
             ch = []
-        ch.append(c2)
+        if isinstance(c2, list):
+            ch.extend(c2)
+            if len(c2) != 5:
+                ch.insert(0, 0)
+        else:
+            ch.append(c2)
+        #替换结束end
     return nn.Sequential(*layers), sorted(save)
 
 

@@ -1,0 +1,6 @@
+train: W:/Jack_datasets/COCO/dataset/Jack_generate_cat/yolostyle/images/train2017
+val: W:/Jack_datasets/COCO/dataset/Jack_generate_cat/yolostyle/images/val2017
+test: W:/Jack_datasets/COCO/dataset/Jack_generate_cat/yolostyle/images/test2017
+
+nc: 1  # 你的类别数量
+names: ["cat"]  # 类别名称
