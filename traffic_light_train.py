@@ -13,7 +13,8 @@ if __name__ == '__main__':  # ✅ 解决 Windows 多进程问题
         'verbose': True,  # 输出早停信息
         'min_delta': 0.001,  # 每次提升的最小阈值
     }
-
+    project_dir = "runs/traffic_light_detect"  # 设置训练结果的根目录
+    experiment_name = ""  # 设置子目录名称
     # 3️⃣ 训练模型
     train_results = model.train(
         data="traffic_light.yaml",  # ✅ 确保数据集路径正确
