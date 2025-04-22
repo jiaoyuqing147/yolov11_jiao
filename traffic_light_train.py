@@ -7,12 +7,6 @@ if __name__ == '__main__':  # ✅ 解决 Windows 多进程问题
     #model = YOLO("ultralytics/cfg/models/11/yolo11.yaml")
     # model = YOLO("ultralytics/cfg/models/11/yolo11_C3K2Lite.yaml")
 
-    # 2️⃣ 设置早停法
-    early_stop = {
-        'patience': 10,  # 停止的耐心次数（如果验证损失在10个epoch内没有改善，则停止训练）
-        'verbose': True,  # 输出早停信息
-        'min_delta': 0.001,  # 每次提升的最小阈值
-    }
     project_dir = "runs/traffic_light_detect"  # 设置训练结果的根目录
     experiment_name = ""  # 设置子目录名称
     # 3️⃣ 训练模型
@@ -27,7 +21,8 @@ if __name__ == '__main__':  # ✅ 解决 Windows 多进程问题
         lr0=0.001,  # ✅ 默认 0.01 可能太大，调整为 0.001（更稳定）
         weight_decay=0.0005,  # ✅ 防止过拟合
         amp=0,  # ✅ 关闭 AMP 适配 GTX 1660 SUPER，防止 NaN 问题
-        callbacks=[early_stop]  # 将早停法回调添加到训练中
+        project=project_dir,  # 设置训练结果的根目录
+        name=experiment_name  # 设置子目录名称
     )
 
     # 4️⃣ 评估模型（在验证集上测试）
