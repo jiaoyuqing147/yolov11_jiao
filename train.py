@@ -13,11 +13,11 @@ if __name__ == '__main__':  # ✅ 解决 Windows 多进程问题
     #     'verbose': True,  # 输出早停信息
     #     'min_delta': 0.001,  # 每次提升的最小阈值
     # }
-    project_dir = "runs/traffic_light_detect"  # 设置训练结果的根目录
-    experiment_name = ""  # 设置子目录名称
+    # project_dir = "runs/traffic_light_detect"  # 设置训练结果的根目录
+    # experiment_name = ""  # 设置子目录名称
     # 3️⃣ 训练模型
     train_results = model.train(
-        data="traffic_light_myxlab.yaml",  # ✅ 确保数据集路径正确
+        data="ultralytics/cfg/datasets/coco128.yaml",  # ✅ 确保数据集路径正确
         epochs=100,  # 训练轮数
         imgsz=640,  # ✅ 建议尝试 960 以提高小目标检测能力
         device="cuda",  # ✅ 使用 GPU 训练
@@ -28,8 +28,8 @@ if __name__ == '__main__':  # ✅ 解决 Windows 多进程问题
         weight_decay=0.0005,  # ✅ 防止过拟合
         # amp=0,  # ✅ 关闭 AMP 适配 GTX 1660 SUPER，防止 NaN 问题
         amp=1,  # ✅  AMP 适配 RTX4080
-        project=project_dir,  # 设置训练结果的根目录
-        name=experiment_name  # 设置子目录名称
+        # project=project_dir,  # 设置训练结果的根目录
+        # name=experiment_name  # 设置子目录名称
     )
 
     # 4️⃣ 评估模型（在验证集上测试）
