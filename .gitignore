@@ -173,3 +173,5 @@ pnnx*
 
 # calibration image
 calibration_*.npy
+# 忽略 pycharm 的个人终端初始化脚本
+.pycharmrc.cmd
