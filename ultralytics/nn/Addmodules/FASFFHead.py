@@ -62,11 +62,11 @@ class FASFF(nn.Module):
         '''
         Args:这里的level主要是根据当前融合的层 level，定义从其他层拉取信息并融合的模块结构
             level:
-                对不同 level（0~3）采取不同融合策略：
-                        Level 0：融合 P3, P4, P5 → 输出增强后的 P3（80×80）
-                        Level 1：融合 P4, P5, P3 → 输出增强后的 P4（40×40）
-                        Level 2：融合 P5, P3, P2 → 输出增强后的 P5（20×20）
-                        Level 3：融合 P3, P2, P2 → 输出增强后的 P2（160×160）
+                对不同 level（0~3）采取不同融合策略：下面注释有错误
+                        Level 0：融合 P4, P3, P5 → 输出增强后的
+                        Level 1：融合 P5, P3, P4 → 输出增强后的
+                        Level 2：融合 P4, P2, P3 → 输出增强后的 P
+                        Level 3：融合 P3, P2, P2 → 输出增强后的
             融合的过程是：把其它层调整为当前层分辨率和通道数，再通过 softmax 加权融合（3路融合），再用 expand 卷积还原维度
             ch:正是因为 FASFFHead 接收了 4 层特征图作为输入，所以每一层的通道数就构成了这个列表 ch，传入到每个 FASFF 模块中，比如yaml中的- [[19, 22, 25, 28], 1, FASFFHead, [nc]]
             multiplier:控制每一层通道数的缩放比例（一般用于不同模型规模，比如 YOLOv8-n、s、m、l、x）
@@ -80,13 +80,13 @@ class FASFF(nn.Module):
                     int(ch[0] * multiplier)]
         # print(self.dim)
 
-        self.inter_dim = self.dim[self.level]#后面准备融合三个通道，以哪个通道为最终的统一的通道数，level是0，以p5通道为标准；level是1，以p4通道数为标准；level是2，以p3为标准；level是3，以p2为标准；
+        self.inter_dim = self.dim[self.level]#后面准备融合三个通道，以哪个通道为最终的统一的通道数，level是0，以p5通道为标准（level=0 是在增强 P3，只不过用 P5 的通道数作为统一的融合通道数（inter_dim），提升高分辨率层的表达力。）；level是1，以p4通道数为标准；level是2，以p3为标准；level是3，以p2为标准；
         if level == 0:#融合p3 p4 p5，融合为增强的p3特征
-            self.stride_level_1 = Conv(int(ch[2] * multiplier), self.inter_dim, 3, 2)# 对 P4 特征图进行下采样 + 通道对齐
+            self.stride_level_1 = Conv(int(ch[2] * multiplier), self.inter_dim, 3, 2)# Conv(128,256,3,2)对 P4 特征图进行下采样 + 通道对齐
 
-            self.stride_level_2 = Conv(int(ch[1] * multiplier), self.inter_dim, 3, 2)#对 P3 特征图（先 maxpool）进一步下采样 + 通道对齐
+            self.stride_level_2 = Conv(int(ch[1] * multiplier), self.inter_dim, 3, 2)#Conv(64,256,3,2)对对 P3 特征图（先 maxpool）进一步下采样 + 通道对齐
 
-            self.expand = Conv(self.inter_dim, int( ch[3] * multiplier), 3, 1)
+            self.expand = Conv(self.inter_dim, int( ch[3] * multiplier), 3, 1)#Conv(256,256,3,2)
         elif level == 1:
             self.compress_level_0 = Conv(
                 int(ch[3] * multiplier), self.inter_dim, 1, 1)
