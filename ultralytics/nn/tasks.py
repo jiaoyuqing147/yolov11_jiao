@@ -369,7 +369,12 @@ class DetectionModel(BaseModel):
         # Build strides
         m = self.model[-1]  # Detect()
         if isinstance(m, (Detect, FASFFHead)):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
-            s = 256  # 2x min stride
+            '''
+            🔹 这个虚拟输入图像（256×256）只是用来跑一次 forward 来辅助推断 stride；
+            🔹 模型的所有参数（通道、卷积核、激活函数、BN）都不依赖这个尺寸；
+            🔹 即使你换成 640×640、512×512，都不会改变 FASFFHead 和其他模块的结构。
+            '''
+            s = 256  # 2x min stride    #这S的设定是很有用的，是初始化的虚拟输入，自动推理 stride
             m.inplace = self.inplace
 
             def _forward(x):

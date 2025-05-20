@@ -19,8 +19,8 @@ class YOLO(Model):
             self.__class__ = type(new_instance)
             self.__dict__ = new_instance.__dict__
         else:
-            # Continue with default YOLO initialization
-            super().__init__(model=model, task=task, verbose=verbose)
+            # Continue with default YOLO initialization   #YOLO类通过 super().__init__达到了这样的效果：我就是我，但我也带上了父亲的技能。
+            super().__init__(model=model, task=task, verbose=verbose)#super().__init__() 不会创建新的父类实例，它只是让当前 YOLO 对象调用它所继承的 Model 类的 __init__ 方法 —— 是 “同一个对象”。
 
     @property
     def task_map(self):
