@@ -374,7 +374,8 @@ class DetectionModel(BaseModel):
             🔹 模型的所有参数（通道、卷积核、激活函数、BN）都不依赖这个尺寸；
             🔹 即使你换成 640×640、512×512，都不会改变 FASFFHead 和其他模块的结构。
             '''
-            s = 256  # 2x min stride    #这S的设定是很有用的，是初始化的虚拟输入，自动推理 stride
+            #s = 256  # 2x min stride    #这S的设定是很有用的，是初始化的虚拟输入，自动推理 stride
+            s = 640  #我实验常用的就是640，我干脆模拟也用640
             m.inplace = self.inplace
 
             def _forward(x):

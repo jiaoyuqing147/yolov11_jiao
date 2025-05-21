@@ -63,10 +63,10 @@ class FASFF(nn.Module):
         Args:这里的level主要是根据当前融合的层 level，定义从其他层拉取信息并融合的模块结构
             level:
                 对不同 level（0~3）采取不同融合策略：下面注释有错误
-                        Level 0：融合 P4, P3, P5 → 输出增强后的
-                        Level 1：融合 P5, P3, P4 → 输出增强后的
-                        Level 2：融合 P4, P2, P3 → 输出增强后的 P
-                        Level 3：融合 P3, P2, P2 → 输出增强后的
+                        Level 0：融合 P5, P4, P3 → 输出增强后的P5。P4、P3 是被“配合对齐”的辅助特征。所有注意力加权、尺度对齐、通道映射都是围绕 P5 进行的。
+                        Level 1：融合 P5, P4, P3 → 输出增强后的P4。
+                        Level 2：融合 P4, P3, P3 → 输出增强后的P3
+                        Level 3：融合 P3, P2, P2 → 输出增强后的p2
             融合的过程是：把其它层调整为当前层分辨率和通道数，再通过 softmax 加权融合（3路融合），再用 expand 卷积还原维度
             ch:正是因为 FASFFHead 接收了 4 层特征图作为输入，所以每一层的通道数就构成了这个列表 ch，传入到每个 FASFF 模块中，比如yaml中的- [[19, 22, 25, 28], 1, FASFFHead, [nc]]
             multiplier:控制每一层通道数的缩放比例（一般用于不同模型规模，比如 YOLOv8-n、s、m、l、x）
@@ -122,38 +122,33 @@ class FASFF(nn.Module):
         512, 256, 128
         from small -> large
         """
-        x_level_add = x[2]
-        x_level_0 = x[3]  # l
-        x_level_1 = x[1]  # m
-        x_level_2 = x[0]  # s
+        x_level_add = x[2]   #p4
+        x_level_0 = x[3]  # l   p5
+        x_level_1 = x[1]  # m    p3
+        x_level_2 = x[0]  # s   p2
         # print('x_level_0: ', x_level_0.shape)
         # print('x_level_1: ', x_level_1.shape)
         # print('x_level_2: ', x_level_2.shape)
         if self.level == 0:
             level_0_resized = x_level_0
             level_1_resized = self.stride_level_1(x_level_add)
-            level_2_downsampled_inter = F.max_pool2d(
-                x_level_1, 3, stride=2, padding=1)
+            level_2_downsampled_inter = F.max_pool2d(x_level_1, 3, stride=2, padding=1)
             level_2_resized = self.stride_level_2(level_2_downsampled_inter)
         elif self.level == 1:
             level_0_compressed = self.compress_level_0(x_level_0)
-            level_0_resized = F.interpolate(
-                level_0_compressed, scale_factor=2, mode='nearest')
+            level_0_resized = F.interpolate(level_0_compressed, scale_factor=2, mode='nearest')
             level_1_resized = x_level_add
             level_2_resized = self.stride_level_2(x_level_1)
         elif self.level == 2:
             level_0_compressed = self.compress_level_0(x_level_add)
-            level_0_resized = F.interpolate(
-                level_0_compressed, scale_factor=2, mode='nearest')
+            level_0_resized = F.interpolate(level_0_compressed, scale_factor=2, mode='nearest')
             level_1_resized = x_level_1
             level_2_resized = self.stride_level_2(x_level_2)
         elif self.level == 3:
             level_0_compressed = self.compress_level_0(x_level_add)
-            level_0_resized = F.interpolate(
-                level_0_compressed, scale_factor=4, mode='nearest')
+            level_0_resized = F.interpolate(level_0_compressed, scale_factor=4, mode='nearest')
             x_level_1_compressed = self.compress_level_1(x_level_1)
-            level_1_resized = F.interpolate(
-                x_level_1_compressed, scale_factor=2, mode='nearest')
+            level_1_resized = F.interpolate(x_level_1_compressed, scale_factor=2, mode='nearest')
             level_2_resized = x_level_2
         # print('level: {}, l1_resized: {}, l2_resized: {}'.format(self.level,
         #      level_1_resized.shape, level_2_resized.shape))
@@ -164,14 +159,13 @@ class FASFF(nn.Module):
         # print('level_1_weight_v: ', level_1_weight_v.shape)
         # print('level_2_weight_v: ', level_2_weight_v.shape)
 
-        levels_weight_v = torch.cat(
-            (level_0_weight_v, level_1_weight_v, level_2_weight_v), 1)
+        levels_weight_v = torch.cat((level_0_weight_v, level_1_weight_v, level_2_weight_v), 1)
         levels_weight = self.weight_levels(levels_weight_v)
         levels_weight = F.softmax(levels_weight, dim=1)
 
         fused_out_reduced = level_0_resized * levels_weight[:, 0:1, :, :] + \
                             level_1_resized * levels_weight[:, 1:2, :, :] + \
-                            level_2_resized * levels_weight[:, 2:, :, :]
+                            level_2_resized * levels_weight[:, 2:, :, :]#这里之所以写 0:1是为了保持维度。  不直接写0，是因为直接写0，结果就是[1, 20, 20]。
 
         out = self.expand(fused_out_reduced)
 
@@ -239,7 +233,7 @@ class FASFFHead(nn.Module):
         x2 = self.l1_fusion(x)
         x3 = self.l2_fusion(x)
         x4 = self.l3_fusion(x)
-        x = [x4, x3, x2, x1]
+        x = [x4, x3, x2, x1]#融合后的p2 p3 p4 p5
         """Concatenates and returns predicted bounding boxes and class probabilities."""
         if self.end2end:
             return self.forward_end2end(x)
