@@ -205,7 +205,9 @@ class FASFFHead(nn.Module):
         self.reg_max = 16  # DFL channels (ch[0] // 16 to scale 4/8/12/16/20 for n/s/m/l/x)#这里也可以考虑用ch[0] // 16，但是目前是已经写死了，写成了16
         self.no = nc + self.reg_max * 4  # number of outputs per anchor
         self.stride = torch.zeros(self.nl)  # strides computed during build
-        c2, c3 = max((16, ch[0] // 4, self.reg_max * 4)), max(ch[0], min(self.nc, 100))  # channels
+        # c2 是 bbox 分支的中间通道数，必须满足 reg_max×4 的最小需求（比如 4×16=64），否则 DFL 无法输出；
+        # c3 是分类分支的中间通道数，需兼顾输入特征通道 ch[0] 和类别数（最多不超过 100），保证表达力。
+        c2, c3 = max((16, ch[0] // 4, self.reg_max * 4)), max(ch[0], min(self.nc, 100))  # channels，c2表示 bbox 分支
         self.cv2 = nn.ModuleList(
             nn.Sequential(Conv(x, c2, 3), Conv(c2, c2, 3), nn.Conv2d(c2, 4 * self.reg_max, 1)) for x in ch
         )
@@ -237,6 +239,13 @@ class FASFFHead(nn.Module):
         """Concatenates and returns predicted bounding boxes and class probabilities."""
         if self.end2end:
             return self.forward_end2end(x)
+
+        '''
+                x[i] 是第 i 层的融合特征图，比如 x[0] 是融合后的 P2，x[1] 是融合后的 P3，以此类推。
+                cv2[i] 是预测 边界框分支（bbox） 的头部，输出为 4 * reg_max 通道（用于 DFL 分布回归）。
+                cv3[i] 是预测 类别分支（cls） 的头部，输出为 nc 通道（每个 anchor 的类别概率）。
+                比如 上面处理后的p2，经过 cv2，得到的是 B，64，160，160；经过cv3得到的是 B，232，160，160 . cat起来就是296，160，160
+        '''
         for i in range(self.nl):
             x[i] = torch.cat((self.cv2[i](x[i]), self.cv3[i](x[i])), 1)
         if self.training:  # Training path
