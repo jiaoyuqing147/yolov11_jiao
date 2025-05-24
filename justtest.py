@@ -15,7 +15,14 @@
 # test = C3LiteShuffle(128, 256, shortcut=False, e=0.5)
 # print(test)
 
-from ultralytics.nn.modules import C3LiteShuffle
+# from ultralytics.nn.modules import C3LiteShuffle
+#
+# test = C3LiteShuffle(128, 256)  # 👈 实例化触发
+# print("✅ C3LiteShuffle 加载成功")
 
-test = C3LiteShuffle(128, 256)  # 👈 实例化触发
-print("✅ C3LiteShuffle 加载成功")
+import torch
+print(torch.cuda.is_available())
+print(torch.cuda.current_device())
+print(torch.cuda.get_device_name(0))
+import torch
+print(torch.version.cuda)

@@ -1,6 +1,6 @@
-train: W:\Jack_datasets\TT100K\tt100k_2021\yolo\images\train
-val: W:\Jack_datasets\TT100K\tt100k_2021\yolo\images\test
-test: W:\Jack_datasets\TT100K\tt100k_2021\yolo\images\test
+train: G:\Jack_datasets\TT100K\tt100k_2021\yolo\images\train
+val: G:\Jack_datasets\TT100K\tt100k_2021\yolo\images\test
+test: G:\Jack_datasets\TT100K\tt100k_2021\yolo\images\test
 
 nc: 232  # 类别数量
 
