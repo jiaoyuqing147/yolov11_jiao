@@ -5,7 +5,7 @@ from ultralytics.utils.tal import dist2bbox, make_anchors
 import math
 import torch.nn.functional as F
 
-__all__ = ['FASFFHead']
+__all__ = ['FASFFHead_Jack']
 
 def autopad(k, p=None, d=1):  # kernel, padding, dilation
     """Pad to 'same' shape outputs."""
@@ -56,19 +56,19 @@ class DFL(nn.Module):
         return self.conv(x.view(b, 4, self.c1, a).transpose(2, 1).softmax(1)).view(b, 4, a)
         # return self.conv(x.view(b, self.c1, 4, a).softmax(1)).view(b, 4, a)
 
-#FASFF 是一种 多尺度特征融合模块，核心目标是，把不同层级的特征图（例如 P3、P4、P5）对齐成同一个尺度后融合在一起，增强当前层级的表达能力。
+#FASFF 是一种 多尺度特征融合模块，核心目标是，把不同层级的特征图（例如 P2、P3、P4）对齐成同一个尺度后融合在一起，增强当前层级的表达能力。
 class FASFF(nn.Module):
     def __init__(self, level, ch, multiplier=1, rfb=False, vis=False):
         '''
         Args:这里的level主要是根据当前融合的层 level，定义从其他层拉取信息并融合的模块结构
             level:
-                对不同 level（0~3）采取不同融合策略：下面注释有错误
-                        Level 0：融合 P5, P4, P3 → 输出增强后的P5。P4、P3 是被“配合对齐”的辅助特征。所有注意力加权、尺度对齐、通道映射都是围绕 P5 进行的。
-                        Level 1：融合 P5, P4, P3 → 输出增强后的P4。
-                        Level 2：融合 P4, P3, P2 → 输出增强后的P3
-                        Level 3：融合 P4, P3, P2 → 输出增强后的p2
+                对不同 level（0~2）采取不同融合策略
+
+                        Level 0：融合 P4, P3, P2 → 输出增强后的P4。
+                        Level 1：融合 P4, P3, P2 → 输出增强后的P3
+                        Level 2：融合 P4, P3, P2 → 输出增强后的p2
             融合的过程是：把其它层调整为当前层分辨率和通道数，再通过 softmax 加权融合（3路融合），再用 expand 卷积还原维度
-            ch:正是因为 FASFFHead 接收了 4 层特征图作为输入，所以每一层的通道数就构成了这个列表 ch，传入到每个 FASFF 模块中，比如yaml中的- [[19, 22, 25, 28], 1, FASFFHead, [nc]]
+            ch: 接收了 3 层特征图作为输入
             multiplier:控制每一层通道数的缩放比例（一般用于不同模型规模，比如 YOLOv8-n、s、m、l、x）
             rfb:是否启用 RFB（Receptive Field Block）策略的开关
             vis:是否在前向传播时输出额外的可视化信息，方便调试或分析
@@ -76,37 +76,24 @@ class FASFF(nn.Module):
         super(FASFF, self).__init__()
 
         self.level = level
-        self.dim = [int(ch[3] * multiplier), int(ch[2] * multiplier), int(ch[1] * multiplier),
-                    int(ch[0] * multiplier)]
-        # print(self.dim)
+        self.dim = [int(c * multiplier) for c in ch[::-1]]  # ch 是 [32, 64, 128]，反转为 [128, 64, 32]
+        self.inter_dim = self.dim[self.level]#后面准备融合三个通道，以哪个通道为最终的统一的通道数
 
-        self.inter_dim = self.dim[self.level]#后面准备融合三个通道，以哪个通道为最终的统一的通道数，level是0，以p5通道为标准（level=0 是在增强 P3，只不过用 P5 的通道数作为统一的融合通道数（inter_dim），提升高分辨率层的表达力。）；level是1，以p4通道数为标准；level是2，以p3为标准；level是3，以p2为标准；
-        if level == 0:#融合p3 p4 p5，融合为增强的p3特征
-            self.stride_level_1 = Conv(int(ch[2] * multiplier), self.inter_dim, 3, 2)# Conv(128,256,3,2)对 P4 特征图进行下采样 + 通道对齐
-
-            self.stride_level_2 = Conv(int(ch[1] * multiplier), self.inter_dim, 3, 2)#Conv(64,256,3,2)对对 P3 特征图（先 maxpool）进一步下采样 + 通道对齐
-
-            self.expand = Conv(self.inter_dim, int( ch[3] * multiplier), 3, 1)#Conv(256,256,3,2)
+        if level == 0:
+            self.stride_p3 = Conv(self.dim[1], self.inter_dim, 3, 2) #用来给p3下采样的，可以跟p4通道对齐
+            self.pool_p2 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)#用来给p2最大池化的
+            self.stride_p2 = Conv(self.dim[2], self.inter_dim, 3, 2) #用来给最大池化后的p2下采样的，可以跟p4通道对齐
+            self.expand = Conv(self.inter_dim, self.dim[0], 3, 1) # 输出增强后的 P4：128→128，保持 40×40
         elif level == 1:
-            self.compress_level_0 = Conv(
-                int(ch[3] * multiplier), self.inter_dim, 1, 1)
-            self.stride_level_2 = Conv(
-                int(ch[1] * multiplier), self.inter_dim, 3, 2)
-            self.expand = Conv(self.inter_dim, int(ch[2] * multiplier), 3, 1)
+            self.compress_p4 = Conv(int(ch[2] * multiplier), self.inter_dim, 1, 1)#对P4降通道128→64
+            self.stride_p2 = Conv(int(ch[0] * multiplier), self.inter_dim, 3, 2)#P2：通道 32→64，同时下采样 160→80
+            self.expand = Conv(self.inter_dim, int(ch[1] * multiplier), 3, 1) #输出增强型 P3：通道 64 → 64（可不变），尺寸保持 80×80
         elif level == 2:
-            self.compress_level_0 = Conv(
-                int(ch[2] * multiplier), self.inter_dim, 1, 1)
-            self.stride_level_2 = Conv(
-                int(ch[0] * multiplier), self.inter_dim, 3, 2)
-            self.expand = Conv(self.inter_dim, int(ch[1] * multiplier), 3, 1)
-        elif level == 3:
-            self.compress_level_0 = Conv(
-                int(ch[2] * multiplier), self.inter_dim, 1, 1)
-            self.compress_level_1 = Conv(
-                int(ch[1] * multiplier), self.inter_dim, 1, 1)
-            self.expand = Conv(self.inter_dim, int(
-                ch[0] * multiplier), 3, 1)
-
+            self.compress_p4 = Conv(self.dim[0], self.inter_dim, 1, 1)#用来给P4降通道的，把128通道降成32
+            self.up_p4 = nn.Upsample(scale_factor=4, mode='nearest')#处理降低通道后的P4，上采样 P4：40×40→160×160
+            self.compress_p3 = Conv(self.dim[1], self.inter_dim, 1, 1)# 降通道 P3：64→32
+            self.up_p3 = nn.Upsample(scale_factor=2, mode='nearest')# 上采样 P3：80×80→160×160
+            self.expand = Conv(self.inter_dim, self.dim[2], 3, 1)
         # when adding rfb, we use half number of channels to save memory
         compress_c = 8 if rfb else 16#临时压缩通道数
         self.weight_level_0 = Conv(self.inter_dim, compress_c, 1, 1)
@@ -116,61 +103,38 @@ class FASFF(nn.Module):
         self.weight_levels = Conv(compress_c * 3, 3, 1, 1)
         self.vis = vis
 
-    def forward(self, x):  # l,m,s
-        """
-        # 128, 256, 512
-        512, 256, 128
-        from small -> large
-        """
-        x_level_add = x[2]   #p4
-        x_level_0 = x[3]  # l   p5
-        x_level_1 = x[1]  # m    p3
-        x_level_2 = x[0]  # s   p2
-        # print('x_level_0: ', x_level_0.shape)
-        # print('x_level_1: ', x_level_1.shape)
-        # print('x_level_2: ', x_level_2.shape)
+    def forward(self, x):
+        x_p2, x_p3, x_p4 = x[0], x[1], x[2]
+
         if self.level == 0:
-            level_0_resized = x_level_0 #p5还是p5，没变
-            level_1_resized = self.stride_level_1(x_level_add)#p4下采样和p5匹配
-            level_2_downsampled_inter = F.max_pool2d(x_level_1, 3, stride=2, padding=1)#p3最大池化
-            level_2_resized = self.stride_level_2(level_2_downsampled_inter)#最大池化后的p3下采样和p5通道匹配
+            l0 = x_p4
+            l1 = self.stride_p3(x_p3)
+            l2 = self.stride_p2(self.pool_p2(x_p2))
+
         elif self.level == 1:
-            level_0_compressed = self.compress_level_0(x_level_0)#对P5的卷积上采样，
-            level_0_resized = F.interpolate(level_0_compressed, scale_factor=2, mode='nearest')
-            level_1_resized = x_level_add
-            level_2_resized = self.stride_level_2(x_level_1)
+            l0 = F.interpolate(self.compress_p4(x_p4), scale_factor=2, mode='nearest')# P4: compress_p4降通道128→64，然后后上采样 40→80
+            l1 = x_p3#p3保持不变
+            l2 = self.stride_p2(x_p2)#下采样，这个stride_p2既能让通道32->64。又因为空间下采样，160——》80
+
         elif self.level == 2:
-            level_0_compressed = self.compress_level_0(x_level_add)
-            level_0_resized = F.interpolate(level_0_compressed, scale_factor=2, mode='nearest')
-            level_1_resized = x_level_1
-            level_2_resized = self.stride_level_2(x_level_2)
-        elif self.level == 3:
-            level_0_compressed = self.compress_level_0(x_level_add)
-            level_0_resized = F.interpolate(level_0_compressed, scale_factor=4, mode='nearest')
-            x_level_1_compressed = self.compress_level_1(x_level_1)
-            level_1_resized = F.interpolate(x_level_1_compressed, scale_factor=2, mode='nearest')
-            level_2_resized = x_level_2
-        # print('level: {}, l1_resized: {}, l2_resized: {}'.format(self.level,
-        #      level_1_resized.shape, level_2_resized.shape))
-        level_0_weight_v = self.weight_level_0(level_0_resized)
-        level_1_weight_v = self.weight_level_1(level_1_resized)
-        level_2_weight_v = self.weight_level_2(level_2_resized)
-        # print('level_0_weight_v: ', level_0_weight_v.shape)
-        # print('level_1_weight_v: ', level_1_weight_v.shape)
-        # print('level_2_weight_v: ', level_2_weight_v.shape)
+            l0 = self.up_p4(self.compress_p4(x_p4))
+            l1 = self.up_p3(self.compress_p3(x_p3))
+            l2 = x_p2
 
-        levels_weight_v = torch.cat((level_0_weight_v, level_1_weight_v, level_2_weight_v), 1)
-        levels_weight = self.weight_levels(levels_weight_v)
-        levels_weight = F.softmax(levels_weight, dim=1)
+        w0 = self.weight_level_0(l0)
+        w1 = self.weight_level_1(l1)
+        w2 = self.weight_level_2(l2)
 
-        fused_out_reduced = level_0_resized * levels_weight[:, 0:1, :, :] + \
-                            level_1_resized * levels_weight[:, 1:2, :, :] + \
-                            level_2_resized * levels_weight[:, 2:, :, :]#这里之所以写 0:1是为了保持维度。  不直接写0，是因为直接写0，结果就是[1, 20, 20]。
+        #根据特征图内容自动学习出 P4、P3、P2 三个分支的融合权重，实现软注意力加权融合。
+        weights_input = torch.cat([w0, w1, w2], dim=1)  # 第一步：拼接三个注意力分支的特征# shape: [B, 3 × compress_c, H, W]
+        weights_logits = self.weight_levels(weights_input)  # 第二步：通过 1 个卷积生成每个分支的注意力分数（未归一化） # shape: [B, 3, H, W]
+        weights = F.softmax(weights_logits, dim=1)   # 第三步：对每个位置的 3 个通道进行 softmax → 得到注意力权重（归一化）# shape: [B, 3, H, W]
 
-        out = self.expand(fused_out_reduced)
+        fused = l0 * weights[:, 0:1, :, :] + l1 * weights[:, 1:2, :, :] + l2 * weights[:, 2:3, :, :]
+        out = self.expand(fused)
 
         if self.vis:
-            return out, levels_weight, fused_out_reduced.sum(dim=1)
+            return out, weights, fused.sum(dim=1)
         else:
             return out
 
@@ -185,7 +149,7 @@ class DWConv(Conv):
 
 
 
-class FASFFHead(nn.Module):
+class FASFFHead_Jack(nn.Module):
     """YOLOv8 Detect head for detection models. CSDNSnu77"""
 
     dynamic = False  # force grid reconstruction  是否强制重新构建 grid（用于推理时动态 shape）
@@ -221,21 +185,20 @@ class FASFFHead(nn.Module):
         )
 
         self.dfl = DFL(self.reg_max) if self.reg_max > 1 else nn.Identity()
-        self.l0_fusion = FASFF(level=0, ch=ch, multiplier=multiplier, rfb=rfb)
-        self.l1_fusion = FASFF(level=1, ch=ch, multiplier=multiplier, rfb=rfb)
-        self.l2_fusion = FASFF(level=2, ch=ch, multiplier=multiplier, rfb=rfb)
-        self.l3_fusion = FASFF(level=3, ch=ch, multiplier=multiplier, rfb=rfb)
-
+        # self.l0_fusion = FASFF(level=0, ch=ch, multiplier=multiplier, rfb=rfb)
+        self.l1_fusion = FASFF(level=1, ch=ch, multiplier=multiplier, rfb=rfb)#准备在这里进行调整，输出增强后的P4
+        self.l2_fusion = FASFF(level=2, ch=ch, multiplier=multiplier, rfb=rfb)#准备在这里进行调整，输出增强后的P3
+        self.l3_fusion = FASFF(level=3, ch=ch, multiplier=multiplier, rfb=rfb)#准备在这里进行调整，输出增强后的P2
         if self.end2end:
             self.one2one_cv2 = copy.deepcopy(self.cv2)
             self.one2one_cv3 = copy.deepcopy(self.cv3)
 
     def forward(self, x):
-        x1 = self.l0_fusion(x)
+        #x1 = self.l0_fusion(x)#本来是处理P5的，删除
         x2 = self.l1_fusion(x)
         x3 = self.l2_fusion(x)
         x4 = self.l3_fusion(x)
-        x = [x4, x3, x2, x1]#融合后的p2 p3 p4 p5
+        x = [x4, x3, x2]#融合后的p2 p3 p4
         """Concatenates and returns predicted bounding boxes and class probabilities."""
         if self.end2end:
             return self.forward_end2end(x)
@@ -347,19 +310,21 @@ class FASFFHead(nn.Module):
         return torch.cat([boxes[i, index // nc], scores[..., None], (index % nc)[..., None].float()], dim=-1)
 
 
-# if __name__ == "__main__":
-#     # Generating Sample image
-#     image1 = (1, 64, 32, 32)
-#     image2 = (1, 128, 16, 16)
-#     image3 = (1, 256, 8, 8)
-#
-#     image1 = torch.rand(image1)
-#     image2 = torch.rand(image2)
-#     image3 = torch.rand(image3)
-#     image = [image1, image2, image3]
-#     channel = (64, 128, 256)
-#     # Model
-#     mobilenet_v1 = FASFFHead(nc=80, ch=channel)
-#
-#     out = mobilenet_v1(image)
-#     print(out)
+if __name__ == "__main__":
+    # 假设模型结构 ch=[32, 64, 128]，乘上 multiplier=1
+    ch = [32, 64, 128]
+
+    model = FASFF(level=2, ch=ch, multiplier=1, vis=True)
+
+    # 构造伪造输入（batch=1）
+    x_p2 = torch.randn(1, 32, 160, 160)
+    x_p3 = torch.randn(1, 64, 80, 80)
+    x_p4 = torch.randn(1, 128, 40, 40)
+
+    # 前向传播
+    out, weights, fused_sum = model([x_p2, x_p3, x_p4])
+
+    # 打印输出信息
+    print("输出特征图 shape：", out.shape)
+    print("注意力权重 shape：", weights.shape)
+    print("融合后特征图（降维前） sum shape：", fused_sum.shape)
