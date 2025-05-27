@@ -185,20 +185,18 @@ class FASFFHead_Jack(nn.Module):
         )
 
         self.dfl = DFL(self.reg_max) if self.reg_max > 1 else nn.Identity()
-        # self.l0_fusion = FASFF(level=0, ch=ch, multiplier=multiplier, rfb=rfb)
-        self.l1_fusion = FASFF(level=1, ch=ch, multiplier=multiplier, rfb=rfb)#准备在这里进行调整，输出增强后的P4
-        self.l2_fusion = FASFF(level=2, ch=ch, multiplier=multiplier, rfb=rfb)#准备在这里进行调整，输出增强后的P3
-        self.l3_fusion = FASFF(level=3, ch=ch, multiplier=multiplier, rfb=rfb)#准备在这里进行调整，输出增强后的P2
+        self.l0_fusion = FASFF(level=0, ch=ch, multiplier=multiplier, rfb=rfb)#输出增强后的P4
+        self.l1_fusion = FASFF(level=1, ch=ch, multiplier=multiplier, rfb=rfb)#输出增强后的P3
+        self.l2_fusion = FASFF(level=2, ch=ch, multiplier=multiplier, rfb=rfb)#输出增强后的P2
         if self.end2end:
             self.one2one_cv2 = copy.deepcopy(self.cv2)
             self.one2one_cv3 = copy.deepcopy(self.cv3)
 
     def forward(self, x):
-        #x1 = self.l0_fusion(x)#本来是处理P5的，删除
-        x2 = self.l1_fusion(x)
-        x3 = self.l2_fusion(x)
-        x4 = self.l3_fusion(x)
-        x = [x4, x3, x2]#融合后的p2 p3 p4
+        x4 = self.l0_fusion(x)
+        x3 = self.l1_fusion(x)
+        x2 = self.l2_fusion(x)
+        x = [x2, x3, x4]#融合后的p2 p3 p4
         """Concatenates and returns predicted bounding boxes and class probabilities."""
         if self.end2end:
             return self.forward_end2end(x)
@@ -310,21 +308,21 @@ class FASFFHead_Jack(nn.Module):
         return torch.cat([boxes[i, index // nc], scores[..., None], (index % nc)[..., None].float()], dim=-1)
 
 
-if __name__ == "__main__":
-    # 假设模型结构 ch=[32, 64, 128]，乘上 multiplier=1
-    ch = [32, 64, 128]
-
-    model = FASFF(level=2, ch=ch, multiplier=1, vis=True)
-
-    # 构造伪造输入（batch=1）
-    x_p2 = torch.randn(1, 32, 160, 160)
-    x_p3 = torch.randn(1, 64, 80, 80)
-    x_p4 = torch.randn(1, 128, 40, 40)
-
-    # 前向传播
-    out, weights, fused_sum = model([x_p2, x_p3, x_p4])
-
-    # 打印输出信息
-    print("输出特征图 shape：", out.shape)
-    print("注意力权重 shape：", weights.shape)
-    print("融合后特征图（降维前） sum shape：", fused_sum.shape)
+# if __name__ == "__main__":
+#     # 假设模型结构 ch=[32, 64, 128]，乘上 multiplier=1
+#     ch = [32, 64, 128]
+#
+#     model = FASFF(level=2, ch=ch, multiplier=1, vis=True)
+#
+#     # 构造伪造输入（batch=1）
+#     x_p2 = torch.randn(1, 32, 160, 160)
+#     x_p3 = torch.randn(1, 64, 80, 80)
+#     x_p4 = torch.randn(1, 128, 40, 40)
+#
+#     # 前向传播
+#     out, weights, fused_sum = model([x_p2, x_p3, x_p4])
+#
+#     # 打印输出信息
+#     print("输出特征图 shape：", out.shape)
+#     print("注意力权重 shape：", weights.shape)
+#     print("融合后特征图（降维前） sum shape：", fused_sum.shape)

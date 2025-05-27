@@ -27,7 +27,7 @@ head:
   - [[-1, 4], 1, Concat, [1]]                      # 8 cat backbone P3
   - [-1, 2, C3k2, [256, False]]                    # 9
 
-  - [-1, 1, nn.Upsample, [None, 2, "nearest"Q]]     # 10
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]     # 10
   - [[-1, 2], 1, Concat, [1]]                      # 11 cat backbone P2
   - [-1, 2, C3k2, [128, False]]                    # 12 (P2)
 
