@@ -10,8 +10,8 @@ if __name__ == '__main__':
     # model.load('yolov11n.pt') # 是否加载预训练权重,科研不建议大家加载否则很难提升精度
     model.train(
                 # data=r"ultralytics/cfg/datasets/tt100k_myxlab.yaml",
-                # data=r"ultralytics/cfg/datasets/tt100k_chu.yaml",
-                data=r"ultralytics/cfg/datasets/tt100k_desk.yaml",
+                data=r"ultralytics/cfg/datasets/tt100k_chu.yaml",
+                #data=r"ultralytics/cfg/datasets/tt100k_desk.yaml",
                 # 如果大家任务是其它的'ultralytics/cfg/default.yaml'找到这里修改task可以改成detect, segment, classify, pose
                 task='detect',
                 cache=False,

@@ -20,9 +20,17 @@
 # test = C3LiteShuffle(128, 256)  # 👈 实例化触发
 # print("✅ C3LiteShuffle 加载成功")
 
+# import torch
+# print(torch.cuda.is_available())
+# print(torch.cuda.current_device())
+# print(torch.cuda.get_device_name(0))
+# import torch
+# print(torch.version.cuda)
+# import cv2
+# img = cv2.imread('/home/jiaoyuqing/bigspace/workspaceJack/datasets/TT100K/tt100k_2021/train/00001.jpg')
+# print(type(img), img.shape if img is not None else "None")
 import torch
-print(torch.cuda.is_available())
-print(torch.cuda.current_device())
-print(torch.cuda.get_device_name(0))
-import torch
-print(torch.version.cuda)
+print(torch.__version__)
+import numpy as np
+print(np.__version__)
+print(np.arange(5))

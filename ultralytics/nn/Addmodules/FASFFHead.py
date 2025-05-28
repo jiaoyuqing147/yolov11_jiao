@@ -81,7 +81,7 @@ class FASFF(nn.Module):
         # print(self.dim)
 
         self.inter_dim = self.dim[self.level]#后面准备融合三个通道，以哪个通道为最终的统一的通道数，level是0，以p5通道为标准（level=0 是在增强 P3，只不过用 P5 的通道数作为统一的融合通道数（inter_dim），提升高分辨率层的表达力。）；level是1，以p4通道数为标准；level是2，以p3为标准；level是3，以p2为标准；
-        if level == 0:#融合p3 p4 p5，融合为增强的p3特征
+        if level == 0:#融合p3 p4 p5，融合为增强的p5特征
             self.stride_level_1 = Conv(int(ch[2] * multiplier), self.inter_dim, 3, 2)# Conv(128,256,3,2)对 P4 特征图进行下采样 + 通道对齐
 
             self.stride_level_2 = Conv(int(ch[1] * multiplier), self.inter_dim, 3, 2)#Conv(64,256,3,2)对对 P3 特征图（先 maxpool）进一步下采样 + 通道对齐
