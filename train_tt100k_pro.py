@@ -3,7 +3,8 @@ warnings.filterwarnings('ignore')
 from ultralytics import YOLO
 
 if __name__ == '__main__':
-    model = YOLO(r'ultralytics/cfg/models/11/yolo11-P234-FASFFHead_Jack.yaml')#使用这个结构,用大的版本就改字母yolo11l-P2-FASFFHead.yaml# 续训yaml文件的地方改为lats.pt的地址,需要注意的是如果你设置训练200轮次模型训练了200轮次是没有办法进行续训的.
+    #model = YOLO(r'ultralytics/cfg/models/11/yolo11-P234-FASFFHead_Jack.yaml')#使用这个结构,用大的版本就改字母yolo11l-P2-FASFFHead.yaml# 续训yaml文件的地方改为lats.pt的地址,需要注意的是如果你设置训练200轮次模型训练了200轮次是没有办法进行续训的.
+    model = YOLO(r'ultralytics/cfg/models/11/yolo11-P234-deeper-FASFFHead_Jack.yaml')#使用这个结构,用大的版本就改字母yolo11l-P2-FASFFHead.yaml# 续训yaml文件的地方改为lats.pt的地址,需要注意的是如果你设置训练200轮次模型训练了200轮次是没有办法进行续训的.
 
     # 如何切换模型版本, 上面的ymal文件可以改为 yolov11s.yaml就是使用的v11s,
     # 类似某个改进的yaml文件名称为yolov11-XXX.yaml那么如果想使用其它版本就把上面的名称改为yolov11l-XXX.yaml即可（改的是上面YOLO中间的名字不是配置文件的）！
@@ -25,7 +26,7 @@ if __name__ == '__main__':
                 optimizer='SGD', # using SGD 优化器 默认为auto建议大家使用固定的.
                 # resume=, # 续训的话这里填写True
                 amp=True,  # 如果出现训练损失为Nan可以关闭amp
-                project='runs/tt100k_yolo11_P234-FASFFHead_Jack_train',
+                project='runs/tt100k_yolo11_P234-deeper-FASFFHead_Jack_train',
                 name='exp',
                 )
 
