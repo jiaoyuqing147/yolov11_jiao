@@ -1130,6 +1130,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c2 = args[1] if args[3] else args[1] * 4
         elif m is nn.BatchNorm2d:
             args = [ch[f]]
+        elif m is SDI:#jackjiao添加，目的是用SDI替换concat模块
+            args = [[ch[x] for x in f]]
         elif m is Concat:
             c2 = sum(ch[x] for x in f)
         elif m in frozenset({Detect, WorldDetect, Segment, Pose, OBB, ImagePoolingAttn, v10Detect, FASFFHead, FASFFHead_Jack}):
