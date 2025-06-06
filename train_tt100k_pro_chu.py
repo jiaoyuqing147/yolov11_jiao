@@ -5,7 +5,7 @@ from ultralytics import YOLO
 if __name__ == '__main__':
     #model = YOLO(r'ultralytics/cfg/models/11/yolo11-P234-FASFFHead_Jack.yaml')#使用这个结构,用大的版本就改字母yolo11l-P2-FASFFHead.yaml# 续训yaml文件的地方改为lats.pt的地址,需要注意的是如果你设置训练200轮次模型训练了200轮次是没有办法进行续训的.
     #model = YOLO(r'ultralytics/cfg/models/11/yolo11-P234-deeper-FASFFHead_Jack.yaml')#使用这个结构,用大的版本就改字母yolo11l-P2-FASFFHead.yaml# 续训yaml文件的地方改为lats.pt的地址,需要注意的是如果你设置训练200轮次模型训练了200轮次是没有办法进行续训的.
-    model = YOLO(r'ultralytics/cfg/models/11/yolo11.yaml')
+    model = YOLO(r'ultralytics/cfg/models/11/yolo11-P234-deeper-FASFFHead_Jack1.yaml')
 
     #model = YOLO(r'runs/tt100k_yolo11_P234-deeper-FASFFHead_Jack_train/exp/weights/last.pt')#延续之前的训练
     # 如何切换模型版本, 上面的ymal文件可以改为 yolov11s.yaml就是使用的v11s,
@@ -28,7 +28,7 @@ if __name__ == '__main__':
                 optimizer='SGD', # using SGD 优化器 默认为auto建议大家使用固定的.
                 resume=False, # 续训的话这里填写True
                 amp=True,  # 如果出现训练损失为Nan可以关闭amp
-                project='runs/tt100k_yolo11_train',
+                project='runs/tt100k_yolo11-P234-deeper-FASFFHead_Jack1_train',
                 name='exp',
                 )
 
