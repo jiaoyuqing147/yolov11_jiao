@@ -150,13 +150,9 @@ class TaskAlignedAssigner(nn.Module):
         align_metric = bbox_scores.pow(self.alpha) * overlaps.pow(self.beta)
         return align_metric, overlaps
 
-    # def iou_calculation(self, gt_bboxes, pd_bboxes):
-    #     """IoU calculation for horizontal bounding boxes."""
-    #     return bbox_iou(gt_bboxes, pd_bboxes, xywh=False, CIoU=True).squeeze(-1).clamp_(0)
     def iou_calculation(self, gt_bboxes, pd_bboxes):
         """IoU calculation for horizontal bounding boxes."""
-        return bbox_iou(gt_bboxes,  pd_bboxes, xywh=False, GIoU=False, DIoU=False, CIoU=True,
-                                     EIoU=False, SIoU=False, WIoU=False,eps=1e-7, scale=0.0).squeeze(-1).clamp_(0)
+        return bbox_iou(gt_bboxes, pd_bboxes, xywh=False, CIoU=True).squeeze(-1).clamp_(0)
 
     def select_topk_candidates(self, metrics, largest=True, topk_mask=None):
         """

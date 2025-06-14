@@ -30,5 +30,6 @@ if __name__ == '__main__':
                 amp=True,  # 如果出现训练损失为Nan可以关闭amp
                 project='runs/tt100k_yolo11-SDI_train',
                 name='exp',
+                iou= 0.5,
                 )
 
