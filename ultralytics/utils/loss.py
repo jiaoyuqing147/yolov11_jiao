@@ -100,9 +100,10 @@ class BboxLoss(nn.Module):
         """IoU loss."""
         weight = target_scores.sum(-1)[fg_mask].unsqueeze(-1)
         #iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, CIoU=True) #yolo11原版的代码,看来默认的是CIOU
+        #loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
         # 对于下面的这行代码想用那个对应的设置为True即可，比如我想用EIoU,那么我只需要把EIoU设置为True，那么此时就是EIoU！
-        iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, GIoU=False, DIoU=False, CIoU=False, EIoU=False, SIoU=False, WIoU=True, Focal=False)
-        loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
+        iou, iou_weight = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, GIoU=False, DIoU=False, CIoU=False, EIoU=False, SIoU=False, WIoU=True, Focal=False)
+        loss_iou = ((1.0 - iou) * iou_weight * weight).sum() / target_scores_sum
 
         # DFL loss
         if self.dfl_loss:
