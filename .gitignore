@@ -176,3 +176,7 @@ pnnx*
 calibration_*.npy
 # 忽略 pycharm 的个人终端初始化脚本
 .pycharmrc.cmd
+
+# Local-only training scripts
+train_tt100k_pro_desktop.py
+train_tt100k_pro_chu.py

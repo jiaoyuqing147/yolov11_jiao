@@ -62,6 +62,27 @@ class FocalLoss(nn.Module):
         return loss.mean(1).sum()
 
 
+class GNCLoss(nn.Module):     #Jack 添加新的损失函数
+    """
+    Gradient Harmonized Class Balanced Loss: 兼顾 hard example 与 easy example。
+    """
+
+    def __init__(self, alpha=0.25, gamma=2.0, beta=2.0):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.beta = beta
+
+    def forward(self, pred, target):
+        pred_prob = pred.sigmoid()
+        pt = target * pred_prob + (1 - target) * (1 - pred_prob)
+        focal_term = (1 - pt) ** self.gamma
+        easy_term = pt ** self.beta
+        loss = F.binary_cross_entropy_with_logits(pred, target, reduction="none")
+        loss *= self.alpha * focal_term + (1 - self.alpha) * easy_term
+        return loss.mean(1).sum()
+
+
 class DFLoss(nn.Module):
     """Criterion class for computing DFL losses during training."""
 
@@ -166,7 +187,8 @@ class v8DetectionLoss:
         h = model.args  # hyperparameters
 
         m = model.model[-1]  # Detect() module
-        self.bce = nn.BCEWithLogitsLoss(reduction="none")
+        #self.bce = nn.BCEWithLogitsLoss(reduction="none")  #yolo11和8默认用这个bce
+        self.bce = GNCLoss(alpha=0.25, gamma=2.0, beta=1.5)
         self.hyp = h
         self.stride = m.stride  # model strides
         self.nc = m.nc  # number of classes
@@ -247,7 +269,9 @@ class v8DetectionLoss:
 
         # Cls loss
         # loss[1] = self.varifocal_loss(pred_scores, target_scores, target_labels) / target_scores_sum  # VFL way
-        loss[1] = self.bce(pred_scores, target_scores.to(dtype)).sum() / target_scores_sum  # BCE
+        #loss[1] = self.bce(pred_scores, target_scores.to(dtype)).sum() / target_scores_sum  # BCE
+        loss_cls_raw = self.bce(pred_scores, target_scores.to(dtype))  # (B, A)   #使用GNCloss
+        loss[1] = loss_cls_raw.sum() / target_scores_sum             #使用GNCloss
 
         # Bbox loss
         if fg_mask.sum():
