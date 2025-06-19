@@ -68,7 +68,7 @@ class GNCLoss(nn.Module):
     Includes warmup logic and internal diagnostic prints for early debugging.
     """
 
-    def __init__(self, num_classes, alpha=0.5, gamma=2.0, beta=1.0, eps=1e-6, warmup_steps=10):
+    def __init__(self, num_classes, alpha=0.5, gamma=2.0, beta=2.0, eps=1e-6, warmup_steps=10):
         super().__init__()
         self.num_classes = num_classes
         self.alpha = alpha
@@ -113,6 +113,18 @@ class GNCLoss(nn.Module):
 
         self.FP = 0.9 * self.FP + 0.1 * fp.to(device)
         self.FN = 0.9 * self.FN + 0.1 * fn.to(device)
+
+        # ✅ 每5个epoch打印一次
+        if hasattr(self, "epoch") and self.epoch % 5 == 0:
+            print(f"[GNC][Epoch {self.epoch}]")
+            print("Top10 FP:", self.FP[:10].tolist())
+            print("Top10 FN:", self.FN[:10].tolist())
+        # if hasattr(self, "epoch") and self.epoch % 5 == 0:
+        #     print(f"[GNC][Epoch {self.epoch}]")
+        #     fp_vals, fp_ids = self.FP.sort(descending=True)
+        #     fn_vals, fn_ids = self.FN.sort(descending=True)
+        #     print("Top10 FP:", [(int(i), float(v)) for i, v in zip(fp_ids[:10], fp_vals[:10])])
+        #     print("Top10 FN:", [(int(i), float(v)) for i, v in zip(fn_ids[:10], fn_vals[:10])])
 
         if self.step < self.warmup_steps:
             cbr_weight = torch.ones_like(glr_weight)
