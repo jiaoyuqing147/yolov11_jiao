@@ -28,7 +28,7 @@ if __name__ == '__main__':
                 optimizer='SGD', # using SGD 优化器 默认为auto建议大家使用固定的.
                 resume=False, # 续训的话这里填写True
                 amp=True,  # 如果出现训练损失为Nan可以关闭amp
-                project='runs/tt100k_yolo11_WIOU_train',
+                project='runs/tt100k_yolo11_WIOU+GNCloss_train',
                 name='exp',
                 #iou=0.5,
                 )
