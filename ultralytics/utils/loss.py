@@ -8,6 +8,7 @@ from ultralytics.utils.metrics import OKS_SIGMA
 from ultralytics.utils.ops import crop_mask, xywh2xyxy, xyxy2xywh
 from ultralytics.utils.tal import RotatedTaskAlignedAssigner, TaskAlignedAssigner, dist2bbox, dist2rbox, make_anchors
 from ultralytics.utils.torch_utils import autocast
+from .NEWLOSSJACK import GNCLoss  #导入jack需要的各种loss
 
 from .metrics import bbox_iou, probiou
 from .tal import bbox2dist
@@ -150,84 +151,6 @@ class FocalLoss(nn.Module):
 #
 #         return loss  # 返回 [B, C] 给 YOLO 框架处理
 
-class GNCLoss(nn.Module):
-    def __init__(self, num_classes, alpha=0.5, gamma=2.0, beta=2.0, eps=1e-6, warmup_steps=10):
-        super().__init__()
-        self.num_classes = num_classes
-        self.alpha = alpha
-        self.gamma = gamma
-        self.beta = beta
-        self.eps = eps
-        self.warmup_steps = warmup_steps
-
-        self.register_buffer("FP", torch.zeros(num_classes))
-        self.register_buffer("FN", torch.zeros(num_classes))
-        self.register_buffer("step", torch.tensor(0))
-
-    def forward(self, pred_logits, targets):
-        device = pred_logits.device
-        self.FP = self.FP.to(device)
-        self.FN = self.FN.to(device)
-        self.step += 1
-
-        probs = pred_logits.sigmoid()
-        pt = targets * probs + (1 - targets) * (1 - probs)
-
-        grad = torch.abs(probs.detach() - targets)
-        pos_grad = grad * targets
-        neg_grad = grad * (1 - targets)
-        pos_grad_sum = pos_grad.sum(dim=0) + self.eps
-        neg_grad_sum = neg_grad.sum(dim=0) + self.eps
-        glr_weight = pos_grad_sum / (pos_grad_sum + neg_grad_sum)
-
-        pred_binary = (probs > 0.5).float()
-        fp = ((pred_binary == 1) & (targets == 0)).sum(dim=0).float()
-        fn = ((pred_binary == 0) & (targets == 1)).sum(dim=0).float()
-
-        self.FP = 0.9 * self.FP + 0.1 * fp.to(device)
-        self.FN = 0.9 * self.FN + 0.1 * fn.to(device)
-
-        if hasattr(self, "epoch") and self.epoch % 5 == 0:
-            print(f"[GNC][Epoch {self.epoch}]")
-            print("Top10 FP:", self.FP[:10].tolist())
-            print("Top10 FN:", self.FN[:10].tolist())
-
-        if self.step < self.warmup_steps:
-            cbr_weight = torch.ones_like(glr_weight)
-        else:
-            bias_ratio = (self.FP + self.eps) / (self.FN + self.eps)
-            x = torch.clamp(self.beta * (bias_ratio - 1.0), -10.0, 10.0)
-            cbr_weight = (1 / (1 + torch.exp(-x))).clamp(0.01, 10.0)
-
-        weight_glr = glr_weight.unsqueeze(0).expand_as(pred_logits)
-        weight_cbr = cbr_weight.unsqueeze(0).expand_as(pred_logits).to(device)
-
-        weight = self.alpha * weight_glr + (1 - self.alpha) * weight_cbr
-
-        loss = F.binary_cross_entropy_with_logits(pred_logits, targets, reduction='none')
-        loss = loss * weight
-
-        if self.training and self.step <= 20:
-            print(f"[GNC] step={self.step.item()} cls_loss={loss.mean().item():.2e}")
-            print(f"      glr_w.mean={glr_weight.mean().item():.4f}, cbr_w.mean={cbr_weight.mean().item():.4f}, weight.mean={weight.mean().item():.4f}")
-
-        return loss
-
-
-def get_classification_loss(name, epoch, warmup_epochs=30, num_classes=80, **kwargs):
-    if name == 'bce':
-        return nn.BCEWithLogitsLoss(reduction="none")
-    elif name == 'gnc':
-        return GNCLoss(num_classes=num_classes, **kwargs)
-    elif name == 'gnc_warmup_bce':
-        if epoch < warmup_epochs:
-            return nn.BCEWithLogitsLoss(reduction="none")
-        else:
-            return GNCLoss(num_classes=num_classes, **kwargs)
-    else:
-        raise ValueError(f"Unsupported loss: {name}")
-
-
 
 class DFLoss(nn.Module):
     """Criterion class for computing DFL losses during training."""
@@ -333,27 +256,26 @@ class v8DetectionLoss:
         h = model.args  # hyperparameters
 
         m = model.model[-1]  # Detect() module
-        #self.bce = nn.BCEWithLogitsLoss(reduction="none")  #yolo11和8默认用这个bce
-
+        #self.bce = nn.BCEWithLogitsLoss(reduction="none")  #yolo11和8默认用这个bce,为了尝试各种类别损失函数,jack修改了
         self.hyp = h
         self.stride = m.stride  # model strides
         self.nc = m.nc  # number of classes
-        # self.bce = GNCLoss(num_classes=self.nc, alpha=0.25, gamma=2.0, beta=1.5)#试试这个损失函数
-        self.cls_loss_type = getattr(h, 'cls_loss_type', 'gnc')#从 h（即超参数 model.args）中获取名为 'cls_loss_type' 的字段值，并赋值给 self.cls_loss_type。如果 h 中没有 cls_loss_type 这个字段，则默认用 'gnc'。
         self.no = m.nc + m.reg_max * 4
         self.reg_max = m.reg_max
         self.device = device
-
-        # 基于配置选择分类损失函数（保持最小改动）
-        self.bce = get_classification_loss(
-            name=self.cls_loss_type,
-            epoch=0,
-            warmup_epochs=30,
-            num_classes=self.nc,
-            alpha=h.get("cls_alpha", 0.25),
-            beta=h.get("cls_beta", 1.5),
-            gamma=h.get("cls_gamma", 2.0)
-        )
+        # 🔽 选择 cls loss 类型,为了支持jack添加的loss,所以这样写
+        self.cls_loss_type = model.yaml.get("cls_loss_type", "bce")  # 默认 bce
+        if self.cls_loss_type == "gnc":
+            print("🔸 Using GNCLoss as classification loss.")
+            self.bce = GNCLoss(
+                num_classes=self.nc,
+                alpha=model.yaml.get("cls_alpha", 0.25),
+                beta=model.yaml.get("cls_beta", 1.5),
+                gamma=model.yaml.get("cls_gamma", 2.0)
+            )
+        else:
+            print("🔹 Using BCEWithLogitsLoss as classification loss.")
+            self.bce = nn.BCEWithLogitsLoss(reduction="none")  # 默认 bce
 
         self.use_dfl = m.reg_max > 1
 
@@ -429,8 +351,15 @@ class v8DetectionLoss:
         # Cls loss
         # loss[1] = self.varifocal_loss(pred_scores, target_scores, target_labels) / target_scores_sum  # VFL way
         #loss[1] = self.bce(pred_scores, target_scores.to(dtype)).sum() / target_scores_sum  # BCE
-        loss_cls_raw = self.bce(pred_scores, target_scores.to(dtype))  # (B, A)   #使用GNCloss
-        loss[1] = loss_cls_raw.sum() / target_scores_sum             #使用GNCloss
+        if self.cls_loss_type == "bce":
+            # BCE 直接一行即可，无需花里胡哨
+            loss[1] = self.bce(pred_scores, target_scores.to(dtype)).sum() / target_scores_sum
+        elif self.cls_loss_type == "gnc":
+            # GNC 可能需要一些打印/调试项
+            loss_cls_raw = self.bce(pred_scores, target_scores.to(dtype))  # GNCLoss 返回的是逐元素 loss
+            loss[1] = loss_cls_raw.sum() / target_scores_sum
+        else:
+            raise ValueError(f"Unsupported cls_loss_type: {self.cls_loss_type}")
 
         # Bbox loss
         if fg_mask.sum():
