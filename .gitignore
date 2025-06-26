@@ -180,3 +180,4 @@ calibration_*.npy
 # Local-only training scripts
 train_tt100k_pro_desktop.py
 train_tt100k_pro_chu.py
+train_tt100k_pro_laptop.py
