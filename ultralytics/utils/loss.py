@@ -63,95 +63,6 @@ class FocalLoss(nn.Module):
         return loss.mean(1).sum()
 
 
-# class GNCLoss(nn.Module):
-#     """
-#     GNC Loss: Gradient-guided loss with Classification-bias-based Refinement (GLR + CBR).
-#     Includes warmup logic and internal diagnostic prints for early debugging.
-#     """
-#
-#     def __init__(self, num_classes, alpha=0.5, gamma=2.0, beta=2.0, eps=1e-6, warmup_steps=10):
-#         super().__init__()
-#         self.num_classes = num_classes
-#         self.alpha = alpha
-#         self.gamma = gamma
-#         self.beta = beta
-#         self.eps = eps
-#         self.warmup_steps = warmup_steps
-#
-#         # 状态缓存
-#         self.register_buffer("FP", torch.zeros(num_classes))
-#         self.register_buffer("FN", torch.zeros(num_classes))
-#         self.register_buffer("step", torch.tensor(0))  # warmup计数器
-#
-#     def forward(self, pred_logits, targets):
-#         """
-#         Args:
-#             pred_logits: [B, C] raw logits
-#             targets: [B, C] binary labels
-#         Returns:
-#             [B, C] loss values
-#         """
-#         device = pred_logits.device
-#         self.FP = self.FP.to(device)
-#         self.FN = self.FN.to(device)
-#         self.step += 1
-#
-#         probs = pred_logits.sigmoid()
-#         pt = targets * probs + (1 - targets) * (1 - probs)
-#
-#         # ---- GLR 部分 ----
-#         grad = torch.abs(probs.detach() - targets)
-#         pos_grad = grad * targets
-#         neg_grad = grad * (1 - targets)
-#         pos_grad_sum = pos_grad.sum(dim=0) + self.eps
-#         neg_grad_sum = neg_grad.sum(dim=0) + self.eps
-#         glr_weight = pos_grad_sum / (pos_grad_sum + neg_grad_sum)
-#
-#         # ---- CBR 部分 ----
-#         pred_binary = (probs > 0.5).float()
-#         fp = ((pred_binary == 1) & (targets == 0)).sum(dim=0).float()
-#         fn = ((pred_binary == 0) & (targets == 1)).sum(dim=0).float()
-#
-#         self.FP = 0.9 * self.FP + 0.1 * fp.to(device)
-#         self.FN = 0.9 * self.FN + 0.1 * fn.to(device)
-#
-#         # ✅ 每5个epoch打印一次
-#         if hasattr(self, "epoch") and self.epoch % 5 == 0:
-#             print(f"[GNC][Epoch {self.epoch}]")
-#             print("Top10 FP:", self.FP[:10].tolist())
-#             print("Top10 FN:", self.FN[:10].tolist())
-#         # if hasattr(self, "epoch") and self.epoch % 5 == 0:
-#         #     print(f"[GNC][Epoch {self.epoch}]")
-#         #     fp_vals, fp_ids = self.FP.sort(descending=True)
-#         #     fn_vals, fn_ids = self.FN.sort(descending=True)
-#         #     print("Top10 FP:", [(int(i), float(v)) for i, v in zip(fp_ids[:10], fp_vals[:10])])
-#         #     print("Top10 FN:", [(int(i), float(v)) for i, v in zip(fn_ids[:10], fn_vals[:10])])
-#
-#         if self.step < self.warmup_steps:
-#             cbr_weight = torch.ones_like(glr_weight)
-#         else:
-#             bias_ratio = (self.FP + self.eps) / (self.FN + self.eps)
-#             x = torch.clamp(self.beta * (bias_ratio - 1.0), -10.0, 10.0)
-#             cbr_weight = (1 / (1 + torch.exp(-x))).clamp(0.01, 10.0)
-#
-#         # 展开成 [B, C]
-#         weight_glr = glr_weight.unsqueeze(0).expand_as(pred_logits)
-#         weight_cbr = cbr_weight.unsqueeze(0).expand_as(pred_logits).to(device)
-#
-#         weight = self.alpha * weight_glr + (1 - self.alpha) * weight_cbr
-#
-#         # ---- BCE Loss with GNC Weighting ----
-#         loss = F.binary_cross_entropy_with_logits(pred_logits, targets, reduction='none')
-#         loss = loss * weight
-#
-#         # ---- 调试输出（仅前20步） ----
-#         if self.training and self.step <= 20:
-#             print(f"[GNC] step={self.step.item()} cls_loss={loss.mean().item():.2e}")
-#             print(f"      glr_w.mean={glr_weight.mean().item():.4f}, cbr_w.mean={cbr_weight.mean().item():.4f}, weight.mean={weight.mean().item():.4f}")
-#
-#         return loss  # 返回 [B, C] 给 YOLO 框架处理
-
-
 class DFLoss(nn.Module):
     """Criterion class for computing DFL losses during training."""
 
@@ -191,10 +102,54 @@ class BboxLoss(nn.Module):
         weight = target_scores.sum(-1)[fg_mask].unsqueeze(-1)
         #iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, CIoU=True) #yolo11原版的代码,看来默认的是CIOU
         #loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
-        # 对于下面的这行代码想用那个对应的设置为True即可，比如我想用EIoU,那么我只需要把EIoU设置为True，那么此时就是EIoU！
-        iou, iou_weight = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, GIoU=False, DIoU=False, CIoU=False, EIoU=False, SIoU=False, WIoU=True, Focal=False)
-        loss_iou = ((1.0 - iou) * iou_weight * weight).sum() / target_scores_sum
+        # 对于下面的这些代码，想用那个对应的设置为True即可，比如我想用EIoU,那么我只需要把EIoU设置为True，那么此时就是EIoU！
+        # ===== 手动指定当前 IoU 类型（只设置一个为 True） =====
+        use_CIoU = True
+        use_EIoU = False
+        use_WIoU = False
+        use_SIoU = False
+        use_GIoU = False
+        use_DIoU = False
+        # ===== 分支处理 bbox_iou 和 loss 计算逻辑 =====
+        if use_WIoU:
+            iou, iou_weight = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask],
+                                       xywh=False, WIoU=True, CIoU=False, EIoU=False,
+                                       SIoU=False, GIoU=False, DIoU=False, Focal=False)
+            loss_iou = ((1.0 - iou) * iou_weight * weight).sum() / target_scores_sum
 
+        elif use_EIoU:
+            iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask],
+                           xywh=False, EIoU=True, WIoU=False, CIoU=False,
+                           SIoU=False, GIoU=False, DIoU=False, Focal=False)
+            loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
+
+        elif use_SIoU:
+            iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask],
+                           xywh=False, SIoU=True, WIoU=False, CIoU=False,
+                           EIoU=False, GIoU=False, DIoU=False, Focal=False)
+            loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
+
+        elif use_GIoU:
+            iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask],
+                           xywh=False, GIoU=True, WIoU=False, CIoU=False,
+                           EIoU=False, SIoU=False, DIoU=False, Focal=False)
+            loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
+
+        elif use_DIoU:
+            iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask],
+                           xywh=False, DIoU=True, WIoU=False, CIoU=False,
+                           EIoU=False, SIoU=False, GIoU=False, Focal=False)
+            loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
+
+        elif use_CIoU:
+            iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask],
+                           xywh=False, CIoU=True, WIoU=False, EIoU=False,
+                           SIoU=False, GIoU=False, DIoU=False, Focal=False)
+            loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
+
+        else:
+            raise ValueError("⚠️ 请至少启用一种 IoU 类型，例如设置 use_CIoU=True")
+        #上面的这段代码可以让我自由的切换损失函数。jack
         # DFL loss
         if self.dfl_loss:
             target_ltrb = bbox2dist(anchor_points, target_bboxes, self.dfl_loss.reg_max - 1)

@@ -143,7 +143,9 @@ dmypy.json
 # datasets and projects (ignore /datasets dir at root only to allow for docs/en/datasets dir)
 /datasets
 runs/
+runs_old/
 vals/
+vals_old/
 wandb/
 .DS_Store
 
