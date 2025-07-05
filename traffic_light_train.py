@@ -2,22 +2,16 @@ from ultralytics import YOLO
 
 if __name__ == '__main__':  # ✅ 解决 Windows 多进程问题
     # 1️⃣ 从零开始训练 YOLOv11
-    # model = YOLO("ultralytics/cfg/models/11/yolo11-BiFPN-MobileNetV4.yaml")
-    model = YOLO("yolo11.yaml")  # ✅ 确保路径正确
+    model = YOLO("ultralytics/cfg/models/11/yolo11-BiFPN-MobileNetV4.yaml")
+    #model = YOLO("yolo11.yaml")  # ✅ 确保路径正确
     #model = YOLO("ultralytics/cfg/models/11/yolo11.yaml")
     # model = YOLO("ultralytics/cfg/models/11/yolo11_C3K2Lite.yaml")
 
-    # # 2️⃣ 设置早停法
-    # early_stop = {
-    #     'patience': 10,  # 停止的耐心次数（如果验证损失在10个epoch内没有改善，则停止训练）
-    #     'verbose': True,  # 输出早停信息
-    #     'min_delta': 0.001,  # 每次提升的最小阈值
-    # }
     project_dir = "runs/traffic_light_detect"  # 设置训练结果的根目录
-    experiment_name = ""  # 设置子目录名称
+    experiment_name = "yolo11-BiFPN-MobileNetV4"  # 设置子目录名称
     # 3️⃣ 训练模型
     train_results = model.train(
-        data="traffic_light_myxlab.yaml",  # ✅ 确保数据集路径正确
+        data="ultralytics/cfg/datasets/traffic_light_myxlab.yaml",  # ✅ 确保数据集路径正确
         epochs=100,  # 训练轮数
         imgsz=640,  # ✅ 建议尝试 960 以提高小目标检测能力
         device="cuda",  # ✅ 使用 GPU 训练
