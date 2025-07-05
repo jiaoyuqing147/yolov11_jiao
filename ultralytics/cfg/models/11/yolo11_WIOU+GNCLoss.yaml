@@ -14,6 +14,9 @@ scales: # model compound scaling constants, i.e. 'model=yolo11n.yaml' will call 
   l: [1.00, 1.00, 512] # summary: 631 layers, 25372160 parameters, 25372144 gradients, 87.6 GFLOPs
   x: [1.00, 1.50, 512] # summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
 
+bbox_loss_type:
+  iou_type: 'wiou'  # 或者 'giou'、'wiou'、'ciou' 等
+
 cls_loss_type: gnc  # 或 gnc_warmup_bce 或 bce
 cls_alpha: 0.25
 cls_beta: 1.5

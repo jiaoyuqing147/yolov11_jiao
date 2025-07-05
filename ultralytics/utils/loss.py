@@ -92,10 +92,11 @@ class DFLoss(nn.Module):
 class BboxLoss(nn.Module):
     """Criterion class for computing training losses during training."""
 
-    def __init__(self, reg_max=16):
+    def __init__(self, reg_max=16, iou_type='ciou'):
         """Initialize the BboxLoss module with regularization maximum and DFL settings."""
         super().__init__()
         self.dfl_loss = DFLoss(reg_max) if reg_max > 1 else None
+        self.iou_type = iou_type.lower()  # 转小写统一处理
 
     def forward(self, pred_dist, pred_bboxes, anchor_points, target_bboxes, target_scores, target_scores_sum, fg_mask):
         """IoU loss."""
@@ -103,13 +104,13 @@ class BboxLoss(nn.Module):
         #iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, CIoU=True) #yolo11原版的代码,看来默认的是CIOU
         #loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
         # 对于下面的这些代码，想用那个对应的设置为True即可，比如我想用EIoU,那么我只需要把EIoU设置为True，那么此时就是EIoU！
-        # ===== 手动指定当前 IoU 类型（只设置一个为 True） =====
-        use_CIoU = True
-        use_EIoU = False
-        use_WIoU = False
-        use_SIoU = False
-        use_GIoU = False
-        use_DIoU = False
+        # ===== 自动设置使用哪种 IoU  =====
+        use_CIoU = self.iou_type == 'ciou'
+        use_EIoU = self.iou_type == 'eiou'
+        use_WIoU = self.iou_type == 'wiou'
+        use_SIoU = self.iou_type == 'siou'
+        use_GIoU = self.iou_type == 'giou'
+        use_DIoU = self.iou_type == 'diou'
         # ===== 分支处理 bbox_iou 和 loss 计算逻辑 =====
         if use_WIoU:
             iou, iou_weight = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask],
@@ -148,7 +149,7 @@ class BboxLoss(nn.Module):
             loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
 
         else:
-            raise ValueError("⚠️ 请至少启用一种 IoU 类型，例如设置 use_CIoU=True")
+            raise ValueError(f"⚠️ 不支持的 IoU 类型: {self.iou_type}，请使用 ciou/eiou/wiou/siou/giou/diou")
         #上面的这段代码可以让我自由的切换损失函数。jack
         # DFL loss
         if self.dfl_loss:
@@ -211,7 +212,7 @@ class v8DetectionLoss:
         h = model.args  # hyperparameters
 
         m = model.model[-1]  # Detect() module
-        #self.bce = nn.BCEWithLogitsLoss(reduction="none")  #yolo11和8默认用这个bce,为了尝试各种类别损失函数,jack修改了
+        #self.bce = nn.BCEWithLogitsLoss(reduction="none")  #yolo11和8默认用这个bce,为了尝试各种类别损失函数,jack修改掉了这个代码
         self.hyp = h
         self.stride = m.stride  # model strides
         self.nc = m.nc  # number of classes
@@ -235,7 +236,9 @@ class v8DetectionLoss:
         self.use_dfl = m.reg_max > 1
 
         self.assigner = TaskAlignedAssigner(topk=tal_topk, num_classes=self.nc, alpha=0.5, beta=6.0)
-        self.bbox_loss = BboxLoss(m.reg_max).to(device)
+        #self.bbox_loss = BboxLoss(m.reg_max).to(device)#这行代码不用了，用下面两行
+        iou_type = model.yaml.get("bbox_loss_type", {}).get("iou_type", "ciou")  # 默认用 ciou
+        self.bbox_loss = BboxLoss(m.reg_max, iou_type=iou_type).to(device)
         self.proj = torch.arange(m.reg_max, dtype=torch.float, device=device)
 
     def preprocess(self, targets, batch_size, scale_tensor):
