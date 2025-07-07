@@ -1,8 +1,21 @@
 import warnings
 warnings.filterwarnings('ignore')
 from ultralytics import YOLO
+#加随机种子还是很有必要的
+import random
+import numpy as np
+import torch
+# ✅ 设置随机种子（方法二：手动控制）
+def set_seed(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 if __name__ == '__main__':
+    set_seed(42)
     #model = YOLO(r'ultralytics/cfg/models/11/yolo11-P234-FASFFHead_Jack.yaml')#使用这个结构,用大的版本就改字母yolo11l-P2-FASFFHead.yaml# 续训yaml文件的地方改为lats.pt的地址,需要注意的是如果你设置训练200轮次模型训练了200轮次是没有办法进行续训的.
     model = YOLO(r'ultralytics/cfg/models/11/yolo11-P234-deeper-FASFFHead_Jack.yaml')#使用这个结构,用大的版本就改字母yolo11l-P2-FASFFHead.yaml# 续训yaml文件的地方改为lats.pt的地址,需要注意的是如果你设置训练200轮次模型训练了200轮次是没有办法进行续训的.
 
