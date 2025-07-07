@@ -10,10 +10,14 @@ scales:
   x: [1.0, 1.5, 512]
 
 
-cls_loss_type: gnc
+
 bbox_loss_type:
   iou_type: 'wiou'  # 或者 'giou'、'wiou'、'ciou' 等
 
+cls_loss_type: gnc  # 或 gnc_warmup_bce 或 bce
+cls_alpha: 0.25
+cls_beta: 1.5
+cls_gamma: 2.0
 
 backbone:
   # Input: 640x640x3
