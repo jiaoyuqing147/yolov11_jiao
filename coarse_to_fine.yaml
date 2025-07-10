@@ -1,0 +1,32 @@
+speed_limit:
+  - pl5, pl10, pl15, pl20, pl25, pl30, pl35, pl40, pl50
+  - pl60, pl70, pl80, pl90, pl100, pl110, pl120
+
+speed_cancel:
+  - pr20, pr30, pr40, pr50, pr60, pr70, pr80
+
+prohibition:
+  - p1, p2, p3, p4, p5, p6, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19
+  - p23, p25, p26, p27, p28, p29, pdd, pb, pbm, pbp, pcd, pcr, pcl, pctl, phcs, phclr,pmb,pmblr
+
+warning:
+  - w3, w12, w13, w18, w20, w21, w22, w30, w32, w34, w35
+  - w41, w42, w45, w46, w47, w55, w57, w58, w59, w63, wc
+
+instruction:
+  - i1, i2, i2r, i3, i4, i4l, i5, i10, i11, i12, i13, i14, pmr
+
+restriction:
+  # 限重标志
+  - pm2, pm5, pm8, pm10, pm15, pm20, pm30, pm35, pm40, pm50, pm55
+  # 限高标志
+  - ph2, ph2.1, ph2.2, ph2.4, ph2.5, ph3, ph3.2, ph3.5
+  - ph4, ph4.2, ph4.3, ph4.5, ph4.8, ph5
+  # 限宽标志
+  - pw3, pw3.2, pw3.5, pw4
+
+guide:
+  - il50, il60, il70, il80, il90, il100, il110
+
+misc:
+  - pg, pn, pne, pnlc, pn-2, ip, im, iz, pa13, pa14, p1n,ps,pss

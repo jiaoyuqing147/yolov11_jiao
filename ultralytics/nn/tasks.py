@@ -1050,6 +1050,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             GhostSPPF,
             ConvECA,
             C2ECA,
+            C3k2_MLLABlock1, #from pro jack
+            C3k2_MLLABlock2,#from pro jack
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1071,6 +1073,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C3k2Lite,# from jack
             ShuffleV2Block,# from jack
             C2ECA,
+            C3k2_MLLABlock1,  # from pro jack
+            C3k2_MLLABlock2,  # from pro jack
         }
     )
 
