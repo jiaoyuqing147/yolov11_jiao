@@ -260,9 +260,8 @@ class MLLABlock(nn.Module):
         return x
 
     def extra_repr(self) -> str:
-        return f"dim={self.dim}, input_resolution={self.input_resolution}, num_heads={self.num_heads}, " \
-               f"mlp_ratio={self.mlp_ratio}"
-
+        #return f"dim={self.dim}, input_resolution={self.input_resolution}, num_heads={self.num_heads}, "f"mlp_ratio={self.mlp_ratio}"#input_resolution这个函数我没实现，搞它台麻烦了
+        return f"dim={self.dim}, num_heads={self.num_heads}, "f"mlp_ratio={self.mlp_ratio}"
 
 def autopad(k, p=None, d=1):  # kernel, padding, dilation
     """Pad to 'same' shape outputs."""
