@@ -184,7 +184,7 @@ calibration_*.npy
 # Local-only training scripts
 train_tt100k_pro_desktop.py
 train_tt100k_pro_chu*.py
-train_tt100k_pro_laptop.py
+train_tt100k_pro_laptop*.py
 val_tt100k_chu*.py
 train_tt100k_pro_myxlab*.py
 val_tt100k_laptop.py
