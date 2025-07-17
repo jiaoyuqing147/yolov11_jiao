@@ -3,7 +3,9 @@ import torch
 import torch.nn as nn
 from einops import rearrange
 
-__all__ = ['LDConv', 'C3k2_LDConv1', 'C3k2_LDConv2']
+__all__ = ['LDConv', 'SmallObjectLDConv', 'C3k2_LDConv1', 'C3k2_LDConv2']
+
+from ultralytics.utils.torch_utils import profile
 
 
 class LDConv(nn.Module):
@@ -141,6 +143,40 @@ class LDConv(nn.Module):
 
         x_offset = rearrange(x_offset, 'b c h w n -> b c (h n) w')
         return x_offset
+
+    def profile(self, x):#计算FLOPS用的，from jack
+        y = self.forward(x)
+
+        # 估算FLOPs，简单估算核心 conv 的
+        batch_size, c_in, h_in, w_in = x.shape
+        c_out, h_out, w_out = y.shape[1:]
+        k_h, k_w = self.num_param, 1  # LDConv的kernel=(num_param, 1)
+
+        flops_conv = batch_size * c_out * h_out * w_out * (c_in * k_h * k_w)
+        flops_pconv = batch_size * self.p_conv.out_channels * h_out * w_out * (c_in * 3 * 3)
+
+        total_flops = flops_conv + flops_pconv
+        return y, total_flops
+
+class SmallObjectLDConv(LDConv):
+    def __init__(self, inc, outc, num_param=5, stride=1, bias=None):
+        super(SmallObjectLDConv, self).__init__(inc, outc, num_param, stride, bias)
+
+        # 小目标不希望偏移过大，初始化 p_conv 权重与偏置更小
+        nn.init.normal_(self.p_conv.weight, mean=0.0, std=0.01)
+        if self.p_conv.bias is not None:
+            nn.init.constant_(self.p_conv.bias, 0.0)
+
+    def _get_p_n(self, N, dtype):
+        # 手动定义更密集且中心对称的采样坐标, 这里是5点布局: 中心+四邻
+        # 点位置: (0,0), (0,-1), (-1,0), (0,1), (1,0)
+        p_n_x = torch.tensor([0, 0, -1, 0, 1], dtype=torch.float)
+        p_n_y = torch.tensor([0, -1, 0, 1, 0], dtype=torch.float)
+
+        p_n = torch.cat([p_n_x, p_n_y], 0).view(1, 2 * N, 1, 1).type(dtype)
+        return p_n
+
+
 
 
 class Bottleneck(nn.Module):
@@ -293,6 +329,18 @@ if __name__ == "__main__":
     # Generating Sample image
     image_size = (1, 64, 224, 224)
     image = torch.rand(*image_size)
+
+    # 测试 LDConv
+    ldconv = LDConv(64, 128, num_param=3)
+    print(">>> Profiling LDConv:")
+    profile(image, ldconv)
+
+    # 测试 C3k2_LDConv2
+    model = C3k2_LDConv2(64, 128)
+    print("\n>>> Profiling C3k2_LDConv2:")
+    profile(image, model)
+
+
 
     # Model
     model = C3k2_LDConv2(64, 64)
