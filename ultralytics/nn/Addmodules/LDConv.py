@@ -160,7 +160,8 @@ class LDConv(nn.Module):
 
 class SmallObjectLDConv(LDConv):
     def __init__(self, inc, outc, num_param=5, stride=1, bias=None):
-        super(SmallObjectLDConv, self).__init__(inc, outc, num_param, stride, bias)
+        num_param = 5  # 强制设为5，忽略调用时传的 num_param
+        super().__init__(inc, outc, num_param, stride, bias)
 
         # 小目标不希望偏移过大，初始化 p_conv 权重与偏置更小
         nn.init.normal_(self.p_conv.weight, mean=0.0, std=0.01)
@@ -168,13 +169,14 @@ class SmallObjectLDConv(LDConv):
             nn.init.constant_(self.p_conv.bias, 0.0)
 
     def _get_p_n(self, N, dtype):
-        # 手动定义更密集且中心对称的采样坐标, 这里是5点布局: 中心+四邻
-        # 点位置: (0,0), (0,-1), (-1,0), (0,1), (1,0)
+        # 手动定义5点布局: 中心+四邻
         p_n_x = torch.tensor([0, 0, -1, 0, 1], dtype=torch.float)
         p_n_y = torch.tensor([0, -1, 0, 1, 0], dtype=torch.float)
 
-        p_n = torch.cat([p_n_x, p_n_y], 0).view(1, 2 * N, 1, 1).type(dtype)
+        p_n = torch.cat([p_n_x, p_n_y], 0).view(1, 2 * 5, 1, 1).type(dtype)  # 固定5
         return p_n
+
+
 
 
 
