@@ -1,13 +1,15 @@
 import subprocess
 
 scripts = [
-    "train_tt100k_pro_myxlab.py",
-    "train_tt100k_pro_myxlab1.py",
-    "train_tt100k_pro_myxlab2.py",
+    # "train_tt100k_pro_myxlab.py",
+    # "train_tt100k_pro_myxlab1.py",
+    # "train_tt100k_pro_myxlab2.py",
+    # "train_tt100k_pro_myxlab21.py",
+    # "train_tt100k_pro_myxlab3.py",
+    # "train_tt100k_pro_myxlab4.py"
+    # "train_tt100k_pro_myxlab5.py"
     "train_tt100k_pro_myxlab21.py",
-    "train_tt100k_pro_myxlab3.py",
-    "train_tt100k_pro_myxlab4.py"
-    "train_tt100k_pro_myxlab5.py"
+    "train_tt100k_pro_myxlab22.py"
 ]
 
 for i, script in enumerate(scripts):
