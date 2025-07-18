@@ -8,13 +8,24 @@ import torch
 from ultralytics.utils.torch_utils import model_info#给自定义卷积模块增加打印GFLOPS的功能，需要这个导入
 
 # ✅ 设置随机种子（方法二：手动控制）
+# def set_seed(seed=42):
+#     random.seed(seed)
+#     np.random.seed(seed)
+#     torch.manual_seed(seed)
+#     torch.cuda.manual_seed_all(seed)
+#     torch.backends.cudnn.deterministic = True
+#     torch.backends.cudnn.benchmark = False
 def set_seed(seed=42):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.enabled = True
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+    torch.use_deterministic_algorithms(True)
+    torch.set_num_threads(8)  # 控制 CPU 线程数
 
 if __name__ == '__main__':
     set_seed(42)
@@ -39,7 +50,7 @@ if __name__ == '__main__':
                 workers=1,
                 device='0',
                 optimizer='SGD', # using SGD 优化器 默认为auto建议大家使用固定的.
-                # resume=, # 续训的话这里填写True
+                resume=False, # 续训的话这里填写True
                 amp=True,  # 如果出现训练损失为Nan可以关闭amp
                 project='runs/tt100k_yolo11_P234-deeper-FASFFHead_Jack_train',
                 name='exp',
