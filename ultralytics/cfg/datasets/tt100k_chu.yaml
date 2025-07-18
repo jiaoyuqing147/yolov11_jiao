@@ -1,7 +1,6 @@
-train: /home/jiaoyuqing/AlgorithmCodes/datasets/TT100K/tt100k_2021/yolo143/images/train
-val: /home/jiaoyuqing/AlgorithmCodes/datasets/TT100K/tt100k_2021/yolo143/images/test
-test: /home/jiaoyuqing/AlgorithmCodes/datasets/TT100K/tt100k_2021/yolo143/images/test
-
+train: /home/jiaoyuqing/bigspace/workspaceJack/datasets/TT100K/tt100k_2021/yolo143/images/train
+val: /home/jiaoyuqing/bigspace/workspaceJack/datasets/TT100K/tt100k_2021/yolo143/images/test
+test: /home/jiaoyuqing/bigspace/workspaceJack/datasets/TT100K/tt100k_2021/yolo143/images/test
 nc: 143  # 类别数量
 
 names: [pl80, p6, ph4.2, pa13, im, w58, pl90, il70, p5, pm55, pl60, ip, p11, pdd,

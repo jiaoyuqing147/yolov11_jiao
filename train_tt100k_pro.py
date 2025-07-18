@@ -63,4 +63,12 @@ if __name__ == '__main__':
                 mixup=0.0,
                 cos_lr=True              # 启用余弦调度收敛更稳
                 )
-
+    # # ✅ 新增的与 batch 相关的配置
+    # lr0 = 0.02,  # 匹配128batch
+    # weight_decay = 0.0005,
+    # momentum = 0.937,
+    # warmup_epochs = 3,
+    # mosaic = 0.0,  # 关闭，避免小 batch 不稳定
+    # mixup = 0.0,
+    # cos_lr = True,  # 启用余弦调度收敛更稳
+#128batch用的
