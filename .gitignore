@@ -146,7 +146,7 @@ runs*/
 runs_chu/
 runs_myxlab/
 runs_old/
-vals/
+vals*/
 vals_old/
 wandb/
 .DS_Store
