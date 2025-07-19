@@ -7,14 +7,6 @@ import numpy as np
 import torch
 from ultralytics.utils.torch_utils import model_info#给自定义卷积模块增加打印GFLOPS的功能，需要这个导入
 
-# ✅ 设置随机种子（方法二：手动控制）
-# def set_seed(seed=42):
-#     random.seed(seed)
-#     np.random.seed(seed)
-#     torch.manual_seed(seed)
-#     torch.cuda.manual_seed_all(seed)
-#     torch.backends.cudnn.deterministic = True
-#     torch.backends.cudnn.benchmark = False
 def set_seed(seed=42):
     random.seed(seed)
     np.random.seed(seed)
@@ -63,12 +55,64 @@ if __name__ == '__main__':
                 mixup=0.0,
                 cos_lr=True              # 启用余弦调度收敛更稳
                 )
-    # # ✅ 新增的与 batch 相关的配置
-    # lr0 = 0.02,  # 匹配128batch
-    # weight_decay = 0.0005,
-    # momentum = 0.937,
-    # warmup_epochs = 3,
-    # mosaic = 0.0,  # 关闭，避免小 batch 不稳定
-    # mixup = 0.0,
-    # cos_lr = True,  # 启用余弦调度收敛更稳
-#128batch用的
+
+
+
+# #下面的是chu的配置
+# import warnings
+# import random
+# import numpy as np
+# import torch
+# from torch._inductor.codecache import DiskCache
+# from ultralytics.utils.torch_utils import model_info#给自定义卷积模块增加打印GFLOPS的功能，需要这个导入
+# warnings.filterwarnings('ignore')
+# from ultralytics import YOLO
+#
+# def set_seed(seed=42):
+#     random.seed(seed)
+#     np.random.seed(seed)
+#     torch.manual_seed(seed)
+#     torch.cuda.manual_seed(seed)
+#     torch.cuda.manual_seed_all(seed)
+#     torch.backends.cudnn.enabled = True
+#     torch.backends.cudnn.deterministic = True
+#     torch.backends.cudnn.benchmark = False
+#     torch.use_deterministic_algorithms(True)
+#     torch.set_num_threads(8)  # 控制 CPU 线程数
+#
+# if __name__ == '__main__':
+#     set_seed(42)
+#     model = YOLO(r'ultralytics/cfg/models/11/yolo11_WIOU+BCELoss.yaml')#默认的就是CIOU+BCE
+#     model.train(
+#                 # data=r"ultralytics/cfg/datasets/tt100k_myxlab.yaml",
+#                 data=r"ultralytics/cfg/datasets/tt100k_chu.yaml",
+#                 task='detect',
+#                 val=True,       #
+#                 save_period=5,   #5次保存一个
+#                 verbose=False,  # 不每step打印
+#                 plots=False,    # 不画训练过程曲线
+#                 cache=False,
+#                 imgsz=640,
+#                 epochs=100,
+#                 single_cls=False,  # 是否是单类别检测
+#                 batch=24,#chu 用24,cpu爆红,GPU还是很空闲,4080用16
+#                 close_mosaic=9999, #不进行马赛克增强
+#                 workers=2,
+#                 device='0',
+#                 optimizer='SGD', # using SGD 优化器 默认为auto建议大家使用固定的.
+#                 resume=False, # 续训的话这里填写True
+#                 amp=True,  # 如果出现训练损失为Nan可以关闭amp
+#                 project='runs/tt100k_yolo11_WIOU+BCE_train(batch24worker2)',
+#                 name='exp',
+#                 #iou=0.5,
+#         # ✅ 新增的与 batch 相关的配置
+#                 lr0=0.02,  #
+#                 weight_decay=0.0005,
+#                 momentum=0.937,
+#                 warmup_epochs=5,
+#                 mosaic=0.0,  # 关闭，避免小 batch 不稳定
+#                 mixup=0.0,
+#                 cos_lr=True,  # 启用余弦调度收敛更稳
+#                 )
+
+

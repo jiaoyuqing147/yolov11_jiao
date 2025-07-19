@@ -14,8 +14,8 @@ def dict_to_obj(d):
     return types.SimpleNamespace(**d)
 
 def measure_dataloader_speed(
-    data_yaml='ultralytics/cfg/datasets/tt100k_myxlab.yaml',
-    img_dir='D:/Jiao/dataset/TsingHua100K/yolo143/images/train',
+    data_yaml='ultralytics/cfg/datasets/tt100k_chu.yaml',
+    img_dir='/home/jiaoyuqing/AlgorithmCodes/datasets/TT100K/tt100k_2021/yolo143/train',
     batch=32,
     workers=4,
     imgsz=640,
@@ -28,7 +28,7 @@ def measure_dataloader_speed(
         'workers': workers
     })
 
-    data_dict = load_yaml('ultralytics/cfg/datasets/tt100k_myxlab.yaml')
+    data_dict = load_yaml('ultralytics/cfg/datasets/tt100k_chu.yaml')
     hyp_dict = load_yaml('ultralytics/cfg/default.yaml')
     hyp = dict_to_obj(hyp_dict)
 
@@ -64,10 +64,10 @@ def measure_dataloader_speed(
 
 if __name__ == '__main__':
     measure_dataloader_speed(
-        data_yaml='ultralytics/cfg/datasets/tt100k_myxlab.yaml',
-        img_dir='D:/Jiao/dataset/TsingHua100K/yolo143/images/train',
-        batch=32,
-        workers=4,
+        data_yaml='ultralytics/cfg/datasets/tt100k_chu.yaml',
+        img_dir='/home/jiaoyuqing/AlgorithmCodes/datasets/TT100K/tt100k_2021/yolo143/images/train',
+        batch=24,
+        workers=2,
         imgsz=640,
-        num_batches=20
+        num_batches=48
     )
