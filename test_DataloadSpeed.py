@@ -65,9 +65,9 @@ def measure_dataloader_speed(
 if __name__ == '__main__':
     measure_dataloader_speed(
         data_yaml='ultralytics/cfg/datasets/tt100k_chu.yaml',
-        img_dir='/home/jiaoyuqing/AlgorithmCodes/datasets/TT100K/tt100k_2021/yolo143/images/train',
+        img_dir='/home/jiaoyuqing/yolo143/images/train',
         batch=24,
         workers=2,
         imgsz=640,
-        num_batches=48
+        num_batches=36
     )
