@@ -191,6 +191,6 @@ val_tt100k_laptop.py
 val_tt100k_myxlab.py
 run_all_train_scipts_*.py
 val_EMTD_*.py
-
+val_myxlab_*.py
 #log files
 log*.txt

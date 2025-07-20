@@ -1,7 +1,7 @@
 import subprocess
 
 scripts = [
-    "train_tt100k_pro_myxlab.py",
+    # "train_tt100k_pro_myxlab.py",
     "train_tt100k_pro_myxlab1.py",
     "train_tt100k_pro_myxlab2.py",
     # "train_tt100k_pro_myxlab21.py",
