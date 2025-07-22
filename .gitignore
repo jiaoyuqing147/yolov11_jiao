@@ -194,3 +194,4 @@ val_EMTD_*.py
 val_myxlab_*.py
 #log files
 log*.txt
+train_chu_*.py
