@@ -40,7 +40,7 @@ if __name__ == '__main__':
                 batch=4,#chu 用64,cpu爆红,GPU还是很空闲,4080用16
                 close_mosaic=9999, #不进行马赛克增强
                 workers=1,
-                device='0',
+                device='cpu',
                 optimizer='SGD', # using SGD 优化器 默认为auto建议大家使用固定的.
                 resume=False, # 续训的话这里填写True
                 amp=True,  # 如果出现训练损失为Nan可以关闭amp
