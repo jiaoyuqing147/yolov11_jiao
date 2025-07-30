@@ -1,6 +1,6 @@
-train: F:\tt100k_2021\yolo143\images\train
-val: F:\tt100k_2021\yolo143\images\test
-test: F:\tt100k_2021\yolo143\images\test
+train: D:\tt100k_2021\yolo143\images\train
+val: D:\tt100k_2021\yolo143\images\test
+test: D:\tt100k_2021\yolo143\images\test
 
 nc: 143  # 类别数量
 
