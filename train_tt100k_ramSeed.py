@@ -45,8 +45,8 @@ if __name__ == '__main__':
         task='detect',
         imgsz=640,
         epochs=100,
-        batch=16,
-        workers=4,  # 可设置为多线程，配合 seed_worker 保证复现
+        batch=48,
+        workers=8,  # 可设置为多线程，配合 seed_worker 保证复现
         device='cuda',  # 'cpu' or 'cuda'
         cache='ram',  # ✅ 高速缓存到内存
         optimizer='SGD',
@@ -62,11 +62,11 @@ if __name__ == '__main__':
         mixup=0.0,
 
         # ✅ 学习率与优化器设置
-        lr0=0.000625,  # 0.01 * batch / 64
-        weight_decay=0.0002,
-        momentum=0.9,
-        warmup_epochs=2,
-        cos_lr=True,
+        # lr0=0.000625,  # 0.01 * batch / 64
+        # weight_decay=0.0002,
+        # momentum=0.9,
+        # warmup_epochs=2,
+        # cos_lr=True,
 
         # ✅ 复现关键参数
         seed=42,
