@@ -1,15 +1,14 @@
 import subprocess
+import time  # ✅ 添加这一行
 
 scripts = [
-    # "train_tt100k_pro_myxlab.py",
-    "train_tt100k_pro_myxlab1.py",
-    "train_tt100k_pro_myxlab2.py",
-    # "train_tt100k_pro_myxlab21.py",
-    # "train_tt100k_pro_myxlab3.py",
-    # "train_tt100k_pro_myxlab4.py"
-    # "train_tt100k_pro_myxlab5.py"
-    # "train_tt100k_pro_myxlab21.py",
-    # "train_tt100k_pro_myxlab22.py"
+    "train_tt100k_pro_chu.py",
+    # "train_tt100k_pro_chu1.py",
+    "train_tt100k_pro_chu2.py",
+    "train_tt100k_pro_chu3.py",
+    # "train_tt100k_pro_chu4.py",
+    # "train_tt100k_pro_chu5.py",
+    # "train_tt100k_pro_chu6.py"
 ]
 
 for i, script in enumerate(scripts):
@@ -30,5 +29,9 @@ for i, script in enumerate(scripts):
 
         process.wait()
         print(f"\n✅ [{script}] finished, log saved to log{i}.txt\n")
+
+    if i < len(scripts) - 1:
+        print("⏳ Waiting 5 minutes before starting next script...\n")
+        time.sleep(300)  # ⏸️ 暂停 5 分钟（300秒）
 
 print("🎉 All training jobs completed.")
