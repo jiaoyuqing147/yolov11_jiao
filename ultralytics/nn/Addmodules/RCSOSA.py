@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 import math
 
-__all__ = ['C3k2_RepVGG', 'RCSOSA']
+__all__ = ['C3k2_RepVGG', 'RCSOSA','RCSOSA_Lite','RCSOSA_Lite_SmallObj']
 
 
 # build RepVGG block
@@ -295,13 +295,185 @@ class C3k2_RepVGG(C2f):
         )
 
 
+
+'''
+考虑到为了写论文，jack添加了下方改动RCSOSA的代码
+'''
+class SRLite(nn.Module):
+    # 轻量级 SR 模块：DWConv + shuffle（无 RepVGG）
+    def __init__(self, c1, c2):
+        super().__init__()
+        c1_ = c1 // 2
+        c2_ = c2 // 2
+        self.conv = Conv(c1_, c2_, k=3, s=1, p=1, g=c1_)  # DWConv
+
+    def forward(self, x):
+        x1, x2 = x.chunk(2, dim=1)
+        out = torch.cat((x1, self.conv(x2)), dim=1)
+        return self.channel_shuffle(out, 2)
+
+    def channel_shuffle(self, x, groups):
+        b, c, h, w = x.size()
+        cpg = c // groups
+        x = x.view(b, groups, cpg, h, w).transpose(1, 2).contiguous()
+        return x.view(b, -1, h, w)
+
+class RCSOSA_Lite(nn.Module):
+    def __init__(self, c1, c2, n=1, se=False, e=0.5):
+        super().__init__()
+        c_ = make_divisible(int(c1 * e), 8)
+        n_ = max(n // 2, 1)
+
+        self.conv1 = Conv(c1, c_)  # 替代 RepVGG
+
+        self.sr1 = nn.Sequential(*[SRLite(c_, c_) for _ in range(n_)])
+        self.sr2 = nn.Sequential(*[SRLite(c_, c_) for _ in range(n_)])
+
+        self.concat_proj = Conv(c_ * 3, c2, k=1)
+
+        self.se = SEBlock(c2) if se else nn.Identity()
+
+    def forward(self, x):
+        x1 = self.conv1(x)
+        x2 = self.sr1(x1)
+        x3 = self.sr2(x2)
+        x_cat = torch.cat((x1, x2, x3), dim=1)
+        return self.se(self.concat_proj(x_cat))
+
+
+
+class CBAM(nn.Module):
+    def __init__(self, channels, reduction=16, kernel_size=7):
+        super(CBAM, self).__init__()
+        # Channel attention
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.max_pool = nn.AdaptiveMaxPool2d(1)
+
+        self.channel_att = nn.Sequential(
+            nn.Conv2d(channels, channels // reduction, 1, bias=False),
+            nn.ReLU(),
+            nn.Conv2d(channels // reduction, channels, 1, bias=False)
+        )
+
+        # Spatial attention
+        self.spatial_att = nn.Sequential(
+            nn.Conv2d(2, 1, kernel_size=kernel_size, padding=kernel_size // 2, bias=False),
+            nn.Sigmoid()
+        )
+
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        # Channel Attention
+        avg_out = self.channel_att(self.avg_pool(x))
+        max_out = self.channel_att(self.max_pool(x))
+        ca = self.sigmoid(avg_out + max_out)
+        x = x * ca
+
+        # Spatial Attention
+        avg_out = torch.mean(x, dim=1, keepdim=True)
+        max_out, _ = torch.max(x, dim=1, keepdim=True)
+        sa = self.spatial_att(torch.cat([avg_out, max_out], dim=1))
+        x = x * sa
+
+        return x
+
+class SRLite_SmallObj(nn.Module):
+    def __init__(self, c1, c2):
+        super().__init__()
+        c1_ = c1 // 2
+        c2_ = c2 // 2
+        # 使用带 dilation 的 DWConv（扩大感受野）
+        self.conv = nn.Conv2d(c1_, c2_, kernel_size=3, stride=1, padding=2, dilation=2, groups=c1_, bias=False)
+        self.bn = nn.BatchNorm2d(c2_)
+        self.act = nn.SiLU()
+
+    def forward(self, x):
+        x1, x2 = x.chunk(2, dim=1)
+        out = torch.cat((x1, self.act(self.bn(self.conv(x2)))), dim=1)
+        return self.channel_shuffle(out, 2)
+
+    def channel_shuffle(self, x, groups):
+        b, c, h, w = x.size()
+        g = groups
+        cpg = c // g
+        x = x.view(b, g, cpg, h, w).transpose(1, 2).contiguous()
+        return x.view(b, -1, h, w)
+
+class RCSOSA_Lite_SmallObj(nn.Module):
+    def __init__(self, c1, c2, n=1, se=False, e=0.5):
+        super().__init__()
+        c_ = max(8, int(c1 * e))
+        n_ = max(1, n // 2)
+
+        # 更强浅层表达（放大通道）
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(c1, c_ * 2, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.BatchNorm2d(c_ * 2),
+            nn.SiLU()
+        )
+
+        self.sr1 = nn.Sequential(*[SRLite_SmallObj(c_ * 2, c_ * 2) for _ in range(n_)])
+        self.sr2 = nn.Sequential(*[SRLite_SmallObj(c_ * 2, c_ * 2) for _ in range(n_)])
+
+        # 拼接后通道为 3*c_，输出压缩至 c2
+        self.concat_proj = nn.Sequential(
+            nn.Conv2d(c_ * 6, c2, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(c2),
+            nn.SiLU()
+        )
+
+        # 可选注意力
+        self.att = CBAM(c2) if se else nn.Identity()
+
+    def forward(self, x):
+        x1 = self.conv1(x)
+        x2 = self.sr1(x1)
+        x3 = self.sr2(x2)
+        x_cat = torch.cat((x1, x2, x3), dim=1)
+        out = self.concat_proj(x_cat)
+        return self.att(out)
+
+
 if __name__ == "__main__":
     # Generating Sample image
-    image_size = (1, 64, 240, 240)
-    image = torch.rand(*image_size)
+    # image_size = (1, 64, 240, 240)
+    # image = torch.rand(*image_size)
+    #
+    # # Model
+    # mobilenet_v1 = C3k2_RepVGG(64, 64)
+    #
+    # out = mobilenet_v1(image)
+    # print(out.size())
+    # 生成一个模拟输入（如来自某一层的特征图）
+    dummy_input = torch.randn(1, 64, 80, 80)  # (B, C, H, W)
 
-    # Model
-    mobilenet_v1 = C3k2_RepVGG(64, 64)
+    print(">>> Testing RCSOSA_Lite")
+    model1 = RCSOSA_Lite(c1=64, c2=64, n=2, se=True, e=0.5)
+    out1 = model1(dummy_input)
+    print("Output shape:", out1.shape)
+    print()
 
-    out = mobilenet_v1(image)
-    print(out.size())
+    print(">>> Testing RCSOSA_Lite_SmallObj")
+    model2 = RCSOSA_Lite_SmallObj(c1=64, c2=64, n=2, se=True, e=0.5)
+    out2 = model2(dummy_input)
+    print("Output shape:", out2.shape)
+    print()
+
+    print(">>> Testing SRLite")
+    sr = SRLite(64, 64)
+    out3 = sr(dummy_input)
+    print("SRLite output shape:", out3.shape)
+    print()
+
+    print(">>> Testing SRLite_SmallObj")
+    sr_small = SRLite_SmallObj(64, 64)
+    out4 = sr_small(dummy_input)
+    print("SRLite_SmallObj output shape:", out4.shape)
+    print()
+
+    print(">>> Testing CBAM module")
+    cbam = CBAM(64)
+    out5 = cbam(dummy_input)
+    print("CBAM output shape:", out5.shape)
+    print()
