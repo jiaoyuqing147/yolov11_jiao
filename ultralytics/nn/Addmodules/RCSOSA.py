@@ -297,7 +297,7 @@ class C3k2_RepVGG(C2f):
 
 
 '''
-考虑到为了写论文，jack添加了下方改动RCSOSA的代码
+设计了下面几种类型的RCSOSA，都不如原作者的好
 '''
 class SRLite(nn.Module):
     # 轻量级 SR 模块：DWConv + shuffle（无 RepVGG）
@@ -339,8 +339,6 @@ class RCSOSA_Lite(nn.Module):
         x3 = self.sr2(x2)
         x_cat = torch.cat((x1, x2, x3), dim=1)
         return self.se(self.concat_proj(x_cat))
-
-
 
 class CBAM(nn.Module):
     def __init__(self, channels, reduction=16, kernel_size=7):
