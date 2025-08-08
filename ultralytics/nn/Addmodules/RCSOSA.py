@@ -367,20 +367,6 @@ class SRLite(nn.Module):
         x = x.view(b, groups, cpg, h, w).transpose(1, 2).contiguous()
         return x.view(b, -1, h, w)
 
-class SEBlock(nn.Module):
-    def __init__(self, c, r=16):
-        super().__init__()
-        self.pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(
-            nn.Conv2d(c, c // r, 1, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(c // r, c, 1, bias=False),
-            nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        w = self.fc(self.pool(x))
-        return x * w
 
 class RCSOSA_Lite_SmallObj(nn.Module):
     def __init__(self, c1, c2, n=1, se=True, e=0.5):
