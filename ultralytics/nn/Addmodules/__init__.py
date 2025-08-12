@@ -7,3 +7,4 @@ from .MLLABlock import *
 from .LDConv import *
 from .RCSOSA import *
 from .ASFFHead import *
+from .FASFFHead_P234 import *
