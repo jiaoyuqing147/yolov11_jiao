@@ -64,10 +64,10 @@ def measure_dataloader_speed(
 
 if __name__ == '__main__':
     measure_dataloader_speed(
-        data_yaml='ultralytics/cfg/datasets/tt100k_chu.yaml',
-        img_dir='/home/jiaoyuqing/yolo143/images/train',
+        data_yaml='ultralytics/cfg/datasets/tt100k_myxlab.yaml',
+        img_dir=r'D:\Jiao\dataset\TsingHua100K\tt100k_2021\yolo110\images\train',
         batch=24,
-        workers=2,
+        workers=6,
         imgsz=640,
-        num_batches=36
+        num_batches=48
     )
