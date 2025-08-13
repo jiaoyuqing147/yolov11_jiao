@@ -1,20 +1,23 @@
-train: D:\tt100k_2021\yolo143\images\train
-val: D:\tt100k_2021\yolo143\images\test
-test: D:\tt100k_2021\yolo143\images\test
+train: E:\tt100k_2021\yolo110\images\train
+val: E:\tt100k_2021\yolo110\images\test
+test: E:\tt100k_2021\yolo110\images\other
 
-nc: 143  # 类别数量
+nc: 110  # 类别数量
 
-names: [pl80, p6, ph4.2, pa13, im, w58, pl90, il70, p5, pm55, pl60, ip, p11, pdd,
-         wc, i2r, w30, pmr, p23, pl15, pm10, pss, p4, w34, pw3.5, iz, p1n, pr70,
-         pg, il80, pb, pbm, pm5, pm40, ph4, w45, i4, pl70, i14, i11, p29, pne,
-         pr60, ph4.5, p12, p3, pl5, w13, p14, i4l, pr30, p17, ph3, w35, pl30,
-         pctl, pr50, pm35, i1, pcd, pbp, pcr, ps, pm8, w18, p10, pn, pa14, ph3.2,
-         p2, ph2.5, w55, pw3, i12, ph4.3, phclr, i10, i13, p26, p8, w42, il50, p13,
-         pr40, p25, w41, pl20, ph4.8, pnlc, ph2.1, pm30, pl40, pmb, pr20, p18, pm50,
-         i2, w22, w47, pl120, w12, w32, pm15, ph5, pw3.2, pl10, il60, w57, pl100,
-         pr80, p16, pl110, w59, w20, ph2, p9, il100, ph2.4, p19, ph3.5, pcl, pl35,
-         p15, phcs, p28, w3, pl25, il110, p1, w46, pn-2, w63, pm20, pmblr, i5,
-         il90, w21, p27, pl50, ph2.2, pm2, i3, pw4]
+names: [
+  pl80, p6, ph4.2, pa13, w58, pl90, p5, pm55, pl60,
+  ip, p11, wc, i2r, w30, p23, pl15, pm10, pss,
+  w34, iz, pr70, pg, il80, pb, pbm, pm5, pm40,
+  ph4, w45, i4, pl70, i14, pne, pr60, p12, p3,
+  pl5, w13, p14, i4l, pr30, p17, ph3, pl30, pr50,
+  pcd, pbp, ps, pm8, w18, p10, pn, pa14, p2, ph2.5,
+  w55, i12, ph4.3, i10, i13, p26, w42, p13, pr40,
+  p25, w41, pl20, ph4.8, pl40, pmb, pr20, p18, pm50,
+  i2, w22, w47, pl120, w32, pm15, ph5, pl10, il60,
+  w57, pl100, pr80, p16, pl110, w59, w20, ph2, p9,
+  il100, ph2.4, p19, ph3.5, pcl, pl35, p28, w3, pl25,
+  p1, w46, w63, i5, il90, w21, pl50, ph2.2, pm2, i3
+]
 
 
 
