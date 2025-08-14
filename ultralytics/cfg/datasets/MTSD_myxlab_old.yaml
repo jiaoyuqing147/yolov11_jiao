@@ -2,7 +2,7 @@ train: D:\Jiao\dataset\MTSD\MTSD\yolo\images\train
 val: D:\Jiao\dataset\MTSD\MTSD\yolo\images\test
 test: D:\Jiao\dataset\MTSD\MTSD\yolo\images\test
 
-nc: 54  # 类别数量
+nc: 66  # 类别数量
 
 names: [U-turn, Keep right, Keep left, Pass either side,
         Compulsory motor-cycles track, Stop, No Left Turn,
