@@ -30,7 +30,8 @@ class SEBlock(nn.Module):
         self.input_channels = input_channels
 
     def forward(self, inputs):
-        x = F.avg_pool2d(inputs, kernel_size=inputs.size(3))
+        # x = F.avg_pool2d(inputs, kernel_size=inputs.size(3))
+        x = F.adaptive_avg_pool2d(inputs, 1)  # (B, C, 1, 1)#替代上面那行
         x = self.down(x)
         x = F.relu(x)
         x = self.up(x)
