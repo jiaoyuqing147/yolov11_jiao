@@ -1,6 +1,6 @@
-train: D:\Jiao\dataset\GTSDB\yolo43\images\train
-val: D:\Jiao\dataset\GTSDB\yolo43\images\val
-test: D:\Jiao\dataset\GTSDB\yolo43\images\test
+train: D:\Jiao\dataset\GTSDB\yolo\images\train
+val: D:\Jiao\dataset\GTSDB\yolo\images\test
+test: D:\Jiao\dataset\GTSDB\yolo\images\test
 
 nc: 43  # 类别数量
 
