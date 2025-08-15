@@ -1,0 +1,21 @@
+train: /home/jiaoyuqing/bigspace/workspaceJack/datasets/MTSD/MTSD/yolo54/images/train
+val: /home/jiaoyuqing/bigspace/workspaceJack/datasets/MTSD/MTSD/yolo54/images/val
+test: /home/jiaoyuqing/bigspace/workspaceJack/datasets/MTSD/MTSD/yolo54/images//test
+
+nc: 54  # 类别数量
+
+names: [
+  U-turn, Keep right, Keep left, Pass either side, Stop, No Left Turn, No right turn, No U-turn, No entry,
+  Weight limit sign 5T, Height limit sign 2.-m, Height limit sign 3.-m, Height limit sign 4.-m, Height limit sign 5.-m,
+  Speed Limit 30, Speed Limit 40, Speed Limit 50, Speed Limit 60, Speed Limit 70, Speed Limit 80, Speed Limit 90, Speed Limit 110,
+  No Entry for Vehicles Exceeding 5T, Heavy vehicles no driving on right lane, No Parking, No Stopping, Give way,
+  Road Work, Camera operation zone, Crosswind area, Caution! Hump, Hump ahead, Towing zone, Left bend,
+  Pedestrian crossing opt1, Pedestrian crossing opt2, School children crossing opt1, School children crossing opt2,
+  Caution, Narrow roads on the left, Traffic lights ahead, Obstacles ahead, Crossroads to the right, Crossroads to the left,
+  Exit to the left, Crossroads, Minor road on right, Minor road on left, Minor road on left opt2, Cattle crossing,
+  Roundabout ahead, Narrow bridge, Split way, Curve on the left
+]
+
+
+
+
