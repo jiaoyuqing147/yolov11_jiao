@@ -1089,7 +1089,6 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C3k2_RepVGG, #from pro jack
             RCSOSA_Lite,#from jack
             RCSOSA_Lite_SmallObj,#from jack
-
         }
     )
 
@@ -1137,8 +1136,14 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c2 = m.width_list  # 返回通道列表
             backbone = True
         # end-----------------------------------------主干-----------------------------------------------估计是主干到这里结束了
+        #
         elif m is AIFI:
             args = [ch[f], *args]
+        # start from jack add 自研模块，非base model 也不是repeat model
+        elif m in {EUCB,}:
+            c2 = ch[f]
+            args = [c2, *args]
+        #end
         elif m in frozenset({HGStem, HGBlock}):
             c1, cm, c2 = ch[f], args[0], args[1]
             args = [c1, cm, c2, *args[2:]]
