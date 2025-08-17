@@ -1,6 +1,6 @@
 train: D:\Jiao\dataset\TsingHua100K\tt100k_2021\yolojack\images\train
-val: D:\Jiao\dataset\TsingHua100K\tt100k_2021\yolojack\images\val
-test: D:\Jiao\dataset\TsingHua100K\tt100k_2021\yolojack\images\test
+val: D:\Jiao\dataset\TsingHua100K\tt100k_2021\yolojack\images\test
+test: D:\Jiao\dataset\TsingHua100K\tt100k_2021\yolojack\images\val
 
 nc: 130  # 类别数量
 
