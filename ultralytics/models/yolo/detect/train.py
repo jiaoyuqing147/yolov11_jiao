@@ -113,13 +113,18 @@ class DetectionTrainer(BaseTrainer):
 
     def progress_string(self):
         """Returns a formatted string of training progress with epoch, GPU memory, loss, instances and size."""
-        return ("\n" + "%11s" * (4 + len(self.loss_names))) % (
-            "Epoch",
-            "GPU_mem",
-            *self.loss_names,
-            "Instances",
-            "Size",
-        )
+        # return ("\n" + "%11s" * (4 + len(self.loss_names))) % (
+        #     "Epoch",
+        #     "GPU_mem",
+        #     *self.loss_names,
+        #     "Instances",
+        #     "Size",
+        # )
+        #替换上面的代码，from jack 蒸馏
+        return ('\n' + '%12s' *
+                (7 + len(self.loss_names))) % (
+        'Epoch', 'GPU_mem', *self.loss_names, 'dfeaLoss', 'dlineLoss', 'dlogitLoss', 'Instances',
+        'Size')
 
     def plot_training_samples(self, batch, ni):
         """Plots training samples with their annotations."""

@@ -37,6 +37,8 @@ from ultralytics.utils import (
     emojis,
     yaml_save,
 )
+from ultralytics.utils import IterableSimpleNamespace
+from ultralytics.utils.AddLoss import get_fpn_features, Distill_LogitLoss, de_parallel, get_channels, FeatureLoss
 from ultralytics.utils.autobatch import check_train_batch_size
 from ultralytics.utils.checks import check_amp, check_file, check_imgsz, check_model_file_from_stem, print_args
 from ultralytics.utils.dist import ddp_cleanup, generate_ddp_command
@@ -146,6 +148,19 @@ class BaseTrainer:
         self.csv = self.save_dir / "results.csv"
         self.plot_idx = [0, 1, 2]
 
+        #----------蒸馏from jack------------
+        #------------------------------Add-Param-Start---------------
+        self.featureloss = 0
+        self.logitloss = 0
+        self.teacherloss = 0
+        self.distillloss =None
+        self.model_t = overrides.get("model_t", None)
+        self.distill_feat_type = "cwd"  # "cwd","mgd","mimic"
+        self.distillonline = False  # False or True
+        self.logit_loss = False # False or True
+        self.distill_layers = [2, 4, 6, 8, 12, 15, 18, 21]
+        # ------------------------------Add-Param-End-----------------
+
         # HUB
         self.hub_session = None
 
@@ -233,7 +248,12 @@ class BaseTrainer:
         self.run_callbacks("on_pretrain_routine_start")
         ckpt = self.setup_model()
         self.model = self.model.to(self.device)
-
+        #下面是为了蒸馏而加的代码，from jack
+        if self.model_t is not None:
+            for k, v in self.model_t.model.named_parameters():
+                v.requires_grad = True
+            self.model_t = self.model_t.to(self.device)
+        #end
         self.set_model_attributes()
 
         # Freeze layers
@@ -303,14 +323,24 @@ class BaseTrainer:
         self.accumulate = max(round(self.args.nbs / self.batch_size), 1)  # accumulate loss before optimizing
         weight_decay = self.args.weight_decay * self.batch_size * self.accumulate / self.args.nbs  # scale weight_decay
         iterations = math.ceil(len(self.train_loader.dataset) / max(self.batch_size, self.args.nbs)) * self.epochs
-        self.optimizer = self.build_optimizer(
-            model=self.model,
-            name=self.args.optimizer,
-            lr=self.args.lr0,
-            momentum=self.args.momentum,
-            decay=weight_decay,
-            iterations=iterations,
-        )
+        # self.optimizer = self.build_optimizer(
+        #     model=self.model,
+        #     name=self.args.optimizer,
+        #     lr=self.args.lr0,
+        #     momentum=self.args.momentum,
+        #     decay=weight_decay,
+        #     iterations=iterations,
+        # )
+        #使用下面这段代码替换上面的代码，from jack  蒸馏代码
+        self.optimizer = self.build_optimizer(model=self.model,
+                                              model_t=self.model_t,
+                                              distillloss=self.distillloss,
+                                              distillonline=self.distillonline,
+                                              name=self.args.optimizer,
+                                              lr=self.args.lr0,
+                                              momentum=self.args.momentum,
+                                              decay=weight_decay,
+                                              iterations=iterations)
 
         # Scheduler
         self._setup_scheduler()
@@ -321,6 +351,15 @@ class BaseTrainer:
 
     def _do_train(self, world_size=1):
         """Train completed, evaluate and plot if specified by arguments."""
+        #from jack   蒸馏
+        self.model = de_parallel(self.model)
+        if self.model_t is not None:
+            self.model_t = de_parallel(self.model_t)
+            self.channels_s = get_channels(self.model,self.distill_layers)
+            self.channels_t = get_channels(self.model_t,self.distill_layers)
+            self.distillloss = FeatureLoss(channels_s=self.channels_s, channels_t=self.channels_t, distiller= self.distill_feat_type)
+        #end
+
         if world_size > 1:
             self._setup_ddp(world_size)
         self._setup_train(world_size)
@@ -349,7 +388,8 @@ class BaseTrainer:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")  # suppress 'Detected lr_scheduler.step() before optimizer.step()'
                 self.scheduler.step()
-
+            if self.model_t is not None:#from jack 蒸馏
+                self.model_t.eval()
             self.model.train()
             if RANK != -1:
                 self.train_loader.sampler.set_epoch(epoch)
@@ -382,13 +422,48 @@ class BaseTrainer:
                 with autocast(self.amp):
                     batch = self.preprocess_batch(batch)
                     self.loss, self.loss_items = self.model(batch)
-
+                    pred_s= self.model(batch['img'])#from jack 蒸馏
+                    stu_features = get_fpn_features(batch['img'], self.model,fpn_layers=self.distill_layers)#from jack 蒸馏
                     if RANK != -1:
                         self.loss *= world_size
                     self.tloss = (
                         (self.tloss * i + self.loss_items) / (i + 1) if self.tloss is not None else self.loss_items
                     )
 
+                    # --------from jack 蒸馏
+                    if self.model_t is not None:
+                        distill_weight = ((1 - math.cos(i * math.pi / len(self.train_loader))) / 2) * (0.1 - 1) + 1
+                        with torch.no_grad():
+                            pred_t_offline = self.model_t(batch['img'])
+                            tea_features = get_fpn_features(batch['img'], self.model_t,
+                                                            fpn_layers=self.distill_layers)  # forward
+                            self.featureloss = self.distillloss(stu_features, tea_features) * distill_weight
+                            self.loss += self.featureloss
+
+                        if self.distillonline:
+                            self.model_t.train()
+                            pred_t_online = self.model_t(batch['img'])
+                            for p in pred_t_online:
+                                p = p.detach()
+                            if i == 0 and epoch == 0:
+                                self.model_t.args["box"] = self.model.args.box
+                                self.model_t.args["cls"] = self.model.args.cls
+                                self.model_t.args["dfl"] = self.model.args.dfl
+                                self.model_t.args = IterableSimpleNamespace(**self.model_t.args)
+                            self.teacherloss, _ = self.model_t(batch, pred_t_online)
+
+                            if RANK != -1:
+                                self.teacherloss *= world_size
+                            self.loss += self.teacherloss
+
+                        if self.logit_loss:
+                            if not self.distillonline:
+                                distill_logit = Distill_LogitLoss(pred_s, pred_t_offline)
+                            else:
+                                distill_logit = Distill_LogitLoss(pred_s, pred_t_online)
+                            self.logitloss = distill_logit()
+                            self.loss += self.logitloss
+                            # from jack end
                 # Backward
                 self.scaler.scale(self.loss).backward()
 
@@ -408,22 +483,34 @@ class BaseTrainer:
                             break
 
                 # Log
+                # if RANK in {-1, 0}:
+                #     loss_length = self.tloss.shape[0] if len(self.tloss.shape) else 1
+                #     pbar.set_description(
+                #         ("%11s" * 2 + "%11.4g" * (2 + loss_length))
+                #         % (
+                #             f"{epoch + 1}/{self.epochs}",
+                #             f"{self._get_memory():.3g}G",  # (GB) GPU memory util
+                #             *(self.tloss if loss_length > 1 else torch.unsqueeze(self.tloss, 0)),  # losses
+                #             batch["cls"].shape[0],  # batch size, i.e. 8
+                #             batch["img"].shape[-1],  # imgsz, i.e 640
+                #         )
+                #     )
+                #     self.run_callbacks("on_batch_end")
+                #     if self.args.plots and ni in self.plot_idx:
+                #         self.plot_training_samples(batch, ni)
+                #下方代码替换上面的，from jack 为了蒸馏
+                mem = f"{torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0:.3g}G"  # (GB)
+                loss_len = self.tloss.shape[0] if len(self.tloss.shape) else 1
+                losses = self.tloss if loss_len > 1 else torch.unsqueeze(self.tloss, 0)
                 if RANK in {-1, 0}:
                     loss_length = self.tloss.shape[0] if len(self.tloss.shape) else 1
                     pbar.set_description(
-                        ("%11s" * 2 + "%11.4g" * (2 + loss_length))
-                        % (
-                            f"{epoch + 1}/{self.epochs}",
-                            f"{self._get_memory():.3g}G",  # (GB) GPU memory util
-                            *(self.tloss if loss_length > 1 else torch.unsqueeze(self.tloss, 0)),  # losses
-                            batch["cls"].shape[0],  # batch size, i.e. 8
-                            batch["img"].shape[-1],  # imgsz, i.e 640
-                        )
-                    )
+                        ('%12s' * 2 + '%12.4g' * (5 + loss_length)) %
+                        (f'{epoch + 1}/{self.epochs}', mem, * losses, self.featureloss, self.teacherloss, self.logitloss, batch['cls'].shape[0], batch['img'].shape[-1]))
                     self.run_callbacks("on_batch_end")
                     if self.args.plots and ni in self.plot_idx:
                         self.plot_training_samples(batch, ni)
-
+                #end
 
                 self.run_callbacks("on_train_batch_end")
 
@@ -761,11 +848,11 @@ class BaseTrainer:
             LOGGER.info("Closing dataloader mosaic")
             self.train_loader.dataset.close_mosaic(hyp=copy(self.args))
 
-    def build_optimizer(self, model, name="auto", lr=0.001, momentum=0.9, decay=1e-5, iterations=1e5):
+    def build_optimizer(self, model, model_t, distillloss, distillonline=False, name="auto", lr=0.001, momentum=0.9, decay=1e-5, iterations=1e5):
         """
         Constructs an optimizer for the given model, based on the specified optimizer name, learning rate, momentum,
         weight decay, and number of iterations.
-
+        #, model_t, distillloss, distillonline=False,这三个参数为了蒸馏而加   from jack
         Args:
             model (torch.nn.Module): The model for which to build an optimizer.
             name (str, optional): The name of the optimizer to use. If 'auto', the optimizer is selected
@@ -801,6 +888,27 @@ class BaseTrainer:
                     g[1].append(param)
                 else:  # weight (with decay)
                     g[0].append(param)
+        #from jack  蒸馏
+        if model_t is not None and distillonline:
+            for v in model_t.modules():
+                # print(v)
+                if hasattr(v, 'bias') and isinstance(v.bias, nn.Parameter):  # bias (no decay)
+                    g[2].append(v.bias)
+                if isinstance(v, bn):  # weight (no decay)
+                    g[1].append(v.weight)
+                elif hasattr(v, 'weight') and isinstance(v.weight, nn.Parameter):  # weight (with decay)
+                    g[0].append(v.weight)
+
+        if model_t is not None and distillloss is not None:
+            for k, v in distillloss.named_modules():
+                # print(v)
+                if hasattr(v, 'bias') and isinstance(v.bias, nn.Parameter):  # bias (no decay)
+                    g[2].append(v.bias)
+                if isinstance(v, bn) or 'bn' in k:  # weight (no decay)
+                    g[1].append(v.weight)
+                elif hasattr(v, 'weight') and isinstance(v.weight, nn.Parameter):  # weight (with decay)
+                    g[0].append(v.weight)
+        #from jack end
 
         optimizers = {"Adam", "Adamax", "AdamW", "NAdam", "RAdam", "RMSProp", "SGD", "auto"}
         name = {x.lower(): x for x in optimizers}.get(name.lower())
