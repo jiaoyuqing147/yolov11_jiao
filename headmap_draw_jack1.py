@@ -222,17 +222,17 @@ def get_params():
     # 绘制热力图方法列表
     grad_list = [
         'GradCAM',
-        'GradCAMPlusPlus',
-        'XGradCAM',
-        'EigenCAM',
-        'HiResCAM',
-        'LayerCAM',
-        'RandomCAM',
-        'EigenGradCAM'
+        # 'GradCAMPlusPlus',
+        # 'XGradCAM',
+        # 'EigenCAM',
+        # 'HiResCAM',
+        # 'LayerCAM',
+        # 'RandomCAM',
+        # 'EigenGradCAM'
     ]
     # 自定义需要绘制热力图的层索引，可以用列表绘制不同层的热力图,单层或者多层都可以,如[9]或者[10, 12, 14, 16, 18]等，将多层的话会将结果进行汇总到一张图上
     # layers = [10, 12, 14, 16, 18]
-    layers = [8]
+    layers = [16, 19, 22]
     for grad_name in grad_list:
         params = {
             'weight': 'runsMTSD/yolo11_train/exp/weights/best.pt',  # 训练好的权重路径
@@ -251,8 +251,8 @@ def get_params():
 
 if __name__ == '__main__':
 
-    img_path = r"E:\p1840144.jpg"  # 图像路径
-    save_path = r'runs\heatmap_result'  # 保存结果的路径
+    img_path = r"E:\DataSets\ceshi"  # 图像路径
+    save_path = r'E:\DataSets\ceshiresult'  # 保存结果的路径
     # 遍历所有的参数并生成热力图
     for each in get_params():
         model = yolov11_heatmap(**each)

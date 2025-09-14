@@ -182,6 +182,7 @@ calibration_*.npy
 .pycharmrc.cmd
 
 # Local-only training scripts
+detection_result_*.py
 train_tt100k_pro_desktop.py
 train_tt100k_pro_chu*.py
 train_tt100k_pro_laptop*.py

@@ -8,7 +8,7 @@ from ultralytics.solutions.heatmap import Heatmap
 heatmap = Heatmap(model="runsMTSD/yolo11_train/exp/weights/best.pt", show=True)
 
 # 2) 读取你的单张图像
-img_path = "E:\p1840144.jpg"
+img_path = r"E:\DataSets\ceshi\1277.jpg"
 im0 = cv2.imread(img_path)
 
 # 3) 生成热力图结果（会在 im0 上做半透明叠加）
