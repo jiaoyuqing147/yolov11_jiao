@@ -1,3 +1,4 @@
+#此脚本可对比两个模型
 import os
 import csv
 import math
