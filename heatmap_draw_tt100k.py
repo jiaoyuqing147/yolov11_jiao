@@ -129,7 +129,14 @@ class yolov8_target(torch.nn.Module):
 
 
 class yolov11_heatmap:
-    def __init__(self, weight, device, method, layer, backward_type, conf_threshold, ratio, show_box, renormalize):
+    def __init__(self, weight, device, method, layer, backward_type, conf_threshold, ratio, show_box, renormalize,
+                 box_thickness=1, font_thickness=1, font_scale=0.8, antialias=True):
+
+        self.box_thickness = box_thickness
+        self.font_thickness = font_thickness
+        self.font_scale = font_scale
+        self.line_type = cv2.LINE_AA if antialias else cv2.LINE_8
+
         device = torch.device(device)
         ckpt = torch.load(weight)
         model_names = ckpt['model'].names
@@ -153,8 +160,14 @@ class yolov11_heatmap:
 
     def draw_detections(self, box, color, name, img):
         xmin, ymin, xmax, ymax = list(map(int, list(box)))
-        cv2.rectangle(img, (xmin, ymin), (xmax, ymax), tuple(int(x) for x in color), 2)
-        cv2.putText(img, str(name), (xmin, ymin - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.8, tuple(int(x) for x in color), 2,
+        #c = tuple(int(x) for x in color)
+        c = (255, 0, 0)  # ← 强制红色 (BGR格式，cv2用的BGR，不要写成RGB)
+        cv2.rectangle(img, (xmin, ymin), (xmax, ymax), c, 1, lineType=cv2.LINE_AA)  # 框体更细
+        cv2.putText(img, str(name), (xmin, ymin - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.2,  # ← 调小字体大小
+                    c,
+                    1,  # ← 调细字体粗细
                     lineType=cv2.LINE_AA)
         return img
 
@@ -222,20 +235,28 @@ def get_params():
     # 绘制热力图方法列表
     grad_list = [
         'GradCAM',
-        # 'GradCAMPlusPlus',
-        # 'XGradCAM',
-        # 'EigenCAM',
-        # 'HiResCAM',
-        # 'LayerCAM',
-        # 'RandomCAM',
-        # 'EigenGradCAM'
+        'GradCAMPlusPlus',
+        'XGradCAM',
+        'EigenCAM',
+        'HiResCAM',
+        'LayerCAM',
+        'RandomCAM',
+        'EigenGradCAM'
     ]
     # 自定义需要绘制热力图的层索引，可以用列表绘制不同层的热力图,单层或者多层都可以,如[9]或者[10, 12, 14, 16, 18]等，将多层的话会将结果进行汇总到一张图上
     # layers = [10, 12, 14, 16, 18]
-    layers = [16, 19, 22]
+    #layers = [16, 19, 22] #yolo11用这三个特征图
+    layers = [19, 22, 25]#yolo11-FASFFHead_P234模型用这三个特征图
+    # layers = [19, 22, 25]#yolo11-FASFFHead_P234_RCSOSA_ciou_bce模型用这三个特征图
+    # layers = [19, 22, 25]#yolo11-FASFFHead_P234_RCSOSA_wiou_bce模型用这三个特征图
+    #
     for grad_name in grad_list:
         params = {
-            'weight': 'runsTT100K130/yolo11_train/exp/weights/best.pt',  # 训练好的权重路径
+            #'weight': 'runsTT100K130/yolo11_train/exp/weights/best.pt',  # 训练好的权重路径
+            #'weight': 'runsTT100K130/yolo11-FASFFHead_P234_train/exp/weights/best.pt',  # 训练好的权重路径
+            # 'weight': 'runsTT100k130/yolo11-FASFFHead_P234_RCSOSA_ciou_bce_train/exp/weights/best.pt',  # 训练好的权重路径
+            'weight': 'runsTT100k130/yolo11-FASFFHead_P234_RCSOSA_wiou_bce_distillation/exp/weights/best.pt',  # 训练好的权重路径
+
             'device': 'cuda:0',  # cpu或者cuda:0
             'method': grad_name,
             # GradCAMPlusPlus, GradCAM, XGradCAM, EigenCAM, HiResCAM, LayerCAM, RandomCAM, EigenGradCAM
@@ -251,8 +272,8 @@ def get_params():
 
 if __name__ == '__main__':
 
-    img_path = r"E:\DataSets\ceshi"  # 图像路径
-    save_path = r'E:\DataSets\ceshiresult'  # 保存结果的路径
+    img_path = r"E:\DataSets\ceshi\48258.jpg"  # 图像路径
+    save_path = r'E:\DataSets\ceshiresult_yolo11-FASFFHead_P234_RCSOSA_wiou_bce_distillation'  # 保存结果的路径
     # 遍历所有的参数并生成热力图
     for each in get_params():
         model = yolov11_heatmap(**each)
