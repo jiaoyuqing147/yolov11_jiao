@@ -158,17 +158,13 @@ class yolov11_heatmap:
         result = non_max_suppression(result, conf_thres=self.conf_threshold, iou_thres=0.65)[0]
         return result
 
-    def draw_detections(self, box, color, name, img):
+    def draw_detections(self, box, cls_id, conf, img):
         xmin, ymin, xmax, ymax = list(map(int, list(box)))
-        #c = tuple(int(x) for x in color)
-        c = (255, 0, 0)  # ← 强制红色 (BGR格式，cv2用的BGR，不要写成RGB)
-        cv2.rectangle(img, (xmin, ymin), (xmax, ymax), c, 1, lineType=cv2.LINE_AA)  # 框体更细
-        cv2.putText(img, str(name), (xmin, ymin - 5),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.2,  # ← 调小字体大小
-                    c,
-                    1,  # ← 调细字体粗细
-                    lineType=cv2.LINE_AA)
+        c = (255, 0, 0)  # BGR
+        cv2.rectangle(img, (xmin, ymin), (xmax, ymax), c, 1, lineType=self.line_type)
+        label = f"{self.model_names[int(cls_id)]} {float(conf):.2f}"
+        cv2.putText(img, label, (xmin, max(ymin - 5, 0)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.3, c, 1, lineType=self.line_type)
         return img
 
     def renormalize_cam_in_bounding_boxes(self, boxes, image_float_np, grayscale_cam):
@@ -205,11 +201,12 @@ class yolov11_heatmap:
             cam_image = self.renormalize_cam_in_bounding_boxes(pred[:, :4].cpu().detach().numpy().astype(np.int32), img,
                                                                grayscale_cam)
         if self.show_box:
-            for data in pred:
-                data = data.cpu().detach().numpy()
-                cam_image = self.draw_detections(data[:4], self.colors[int(data[4:].argmax())],
-                                                 f'{self.model_names[int(data[4:].argmax())]} {float(data[4:].max()):.2f}',
-                                                 cam_image)
+            for det in pred:
+                det = det.cpu().detach().numpy()
+                x1, y1, x2, y2 = det[:4]
+                conf = det[4]
+                cls_id = det[5]
+                cam_image = self.draw_detections([x1, y1, x2, y2], cls_id, conf, cam_image)
 
         cam_image = Image.fromarray(cam_image)
         cam_image.save(save_path)
@@ -252,11 +249,11 @@ def get_params():
     #
     for grad_name in grad_list:
         params = {
-            #'weight': 'runsTT100K130/yolo11_train/exp/weights/best.pt',  # 训练好的权重路径
+            #'weight': 'runsTT100K130/yolo11_train/exp/weights/best.pt',# 训练好的权重路径
             #'weight': 'runsTT100K130/yolo11-FASFFHead_P234_train/exp/weights/best.pt',  # 训练好的权重路径
-            # 'weight': 'runsTT100k130/yolo11-FASFFHead_P234_RCSOSA_ciou_bce_train/exp/weights/best.pt',  # 训练好的权重路径
+            #'weight': 'runsTT100k130/yolo11-FASFFHead_P234_RCSOSA_wiou_bce_train/exp/weights/best.pt',  # 训练好的权重路径
             'weight': 'runsTT100k130/yolo11-FASFFHead_P234_RCSOSA_wiou_bce_distillation/exp/weights/best.pt',  # 训练好的权重路径
-
+            #'weight': 'runsTT100k130/yolo11_train/exp/weights/best.pt',  # 训练好的权重路径
             'device': 'cuda:0',  # cpu或者cuda:0
             'method': grad_name,
             # GradCAMPlusPlus, GradCAM, XGradCAM, EigenCAM, HiResCAM, LayerCAM, RandomCAM, EigenGradCAM
@@ -272,7 +269,7 @@ def get_params():
 
 if __name__ == '__main__':
 
-    img_path = r"E:\DataSets\ceshi\48258.jpg"  # 图像路径
+    img_path = r"E:\DataSets\ceshi\9447.jpg"  # 图像路径
     save_path = r'E:\DataSets\ceshiresult_yolo11-FASFFHead_P234_RCSOSA_wiou_bce_distillation'  # 保存结果的路径
     # 遍历所有的参数并生成热力图
     for each in get_params():

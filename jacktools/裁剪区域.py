@@ -70,8 +70,8 @@ def draw_and_crop(
 
 if __name__ == "__main__":
     # === 示例参数 ===
-    img_path = r"E:\DataSets\ceshi\9447 - 副本640.jpg"   # 原图路径
-    out_dir  = r"E:\DataSets\ceshi_crops"      # 输出目录
+    img_path = r"E:\DataSets\ceshiresult_yolo11-FASFFHead_P234\result_GradCAM.png"   # 原图路径
+    out_dir  = r"E:\DataSets\ceshiresult_yolo11-FASFFHead_P234"      # 输出目录
 
     # 左上角+宽高（像素）
     x, y = 150, 200
