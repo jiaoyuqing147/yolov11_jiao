@@ -70,12 +70,14 @@ def draw_and_crop(
 
 if __name__ == "__main__":
     # === 示例参数 ===
-    img_path = r"E:\DataSets\ceshiresult_yolo11-FASFFHead_P234\result_GradCAM.png"   # 原图路径
+    img_path = r"E:\DataSets\ceshiresult_yolo11-FASFFHead_P234\result_GradCAMPlusPlus.png"   # 原图路径
     out_dir  = r"E:\DataSets\ceshiresult_yolo11-FASFFHead_P234"      # 输出目录
 
     # 左上角+宽高（像素）
+    #TT100K使用的裁剪区域
     x, y = 150, 200
-    w, h = 490, 200
+    w, h = 490, 220
+
 
     # 可选标签（显示在框上面）
-    draw_and_crop(img_path, x, y, w, h, out_dir, rect_color=(0, 112, 192), rect_width=4, label="ROI")
+    draw_and_crop(img_path, x, y, w, h, out_dir, rect_color=(0,  112, 192), rect_width=4, label="ROI")
