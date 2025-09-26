@@ -1,6 +1,6 @@
-train: E:\Datasets\tt100k_2021\yolojack\images\train
-val: E:\Datasets\tt100k_2021\yolojack\images\test
-test: E:\Datasets\tt100k_2021\yolojack\images\val
+train: E:\DataSets\tt100k_2021\yolojack\images\train
+val: E:\DataSets\tt100k_2021\yolojack\images\test
+test: E:\DataSets\tt100k_2021\yolojack\images\val
 
 
 nc: 130  # 类别数量

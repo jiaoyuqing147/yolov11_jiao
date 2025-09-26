@@ -2,10 +2,16 @@ import cv2
 import os
 
 # === 配置 ===
-img_path = r"E:\DataSets\ceshiMTSD\p1840115.jpg"
+# img_path = r"E:\DataSets\ceshiMTSD\p1830960.jpg"  # ← 你现在用的这张
+# label_path = r"E:\DataSets\ceshiMTSD\p1830960.txt"
+# save_path = r"E:\DataSets\ceshiMTSD\p1830960_640_drawn.png"  # ← 建议先存 PNG，避免JPEG糊
+
+img_path = r"E:\DataSets\ceshiMTSD\p1840115.jpg"  # ← 你现在用的这张
 label_path = r"E:\DataSets\ceshiMTSD\p1840115.txt"
-save_drawn_path = r"E:\DataSets\ceshiMTSD\p1840115_640_drawn.png"
 save_resized_path = r"E:\DataSets\ceshiMTSD\p1840115_640.png"   # ← 新增：保存缩放后的原图
+save_path = r"E:\DataSets\ceshiMTSD\p1840115_640_drawn.png"  # ← 建议先存 PNG，避免JPEG糊
+
+
 
 # YOLO 类别名列表
 names = [
@@ -20,19 +26,18 @@ names = [
   "Roundabout ahead", "Narrow bridge", "Split way", "Curve on the left"
 ]
 
+
 # === 1. 读取图像 ===
 img = cv2.imread(img_path)
 h, w = img.shape[:2]
 
-# —— resize 到 640×640 —— #
+# —— 新增：若尺寸不是 640×640，用与热力图一致的 letterbox 到 640 —— #
+# 这样 thickness=1 / fontScale=0.3 的观感就与热力图一致
 target = (640, 640)
 if (w, h) != target:
+    # 与热力图一致：INTER_LINEAR + 最小矩形填充到 stride 对齐（简化为直接 resize 到 640×640）
     img = cv2.resize(img, target, interpolation=cv2.INTER_LINEAR)
     h, w = img.shape[:2]
-
-# === 新增：保存缩放后的原图 ===
-cv2.imwrite(save_resized_path, img)
-print(f"缩放后的原图已保存到: {save_resized_path}")
 
 # === 2. 读取txt并绘制 ===
 with open(label_path, "r", encoding="utf-8") as f:
@@ -40,29 +45,37 @@ with open(label_path, "r", encoding="utf-8") as f:
         cls, x_c, y_c, bw, bh = map(float, line.split())
         cls = int(cls)
 
+        # 将 YOLO 格式转换为左上角和右下角
         x1 = int((x_c - bw/2) * w)
         y1 = int((y_c - bh/2) * h)
         x2 = int((x_c + bw/2) * w)
         y2 = int((y_c + bh/2) * h)
 
-        c = (0, 0, 255)
-        line_type = cv2.LINE_AA
+        # === 关键：和热力图代码完全一致的绘制参数 ===
+        c = (0, 0, 255)  # 红色 (BGR)
+        # 如果你觉得边缘偏“糊”，可把 lineType 从 LINE_AA 改为 LINE_8，更锐利：
+        line_type = cv2.LINE_AA  # 或 cv2.LINE_8
 
+        # 矩形：厚度=1
         cv2.rectangle(img, (x1, y1), (x2, y2), c, 1, lineType=line_type)
 
+        # 文字：字号=0.3，粗细=1，偏移=5
         label = names[cls] if cls < len(names) else str(cls)
-        font_face = cv2.FONT_HERSHEY_SIMPLEX
+
+        # 若仍觉得小字糊，可换更锐利的字体：FONT_HERSHEY_PLAIN（更“硬”）
+        font_face = cv2.FONT_HERSHEY_SIMPLEX  # 或 cv2.FONT_HERSHEY_PLAIN
 
         cv2.putText(
             img, label,
-            (x1, max(y1 - 5, 0)),
+            (x1, max(y1 - 5, 0)),   # 固定偏移=5
             font_face,
-            0.3,
+            0.3,                    # 固定字号=0.3（与热力图一致）
             c,
-            1,
+            1,                      # 固定粗细=1（与热力图一致）
             lineType=line_type
         )
 
 # === 3. 保存结果 ===
-cv2.imwrite(save_drawn_path, img)
-print(f"标注图已保存到: {save_drawn_path}")
+# 建议保存为 PNG（无损、更锐利）。如需 JPEG：cv2.imwrite(save_path_jpg, img, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
+cv2.imwrite(save_path, img)
+print(f"标注图已保存到: {save_path}")

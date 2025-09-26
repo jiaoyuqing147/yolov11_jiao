@@ -1,6 +1,6 @@
-train: E:\Datasets\MTSD\yolo54\images\train
-val: E:\Datasets\MTSD\yolo54\images\val
-test: E:\Datasets\MTSD\yolo54\images\test
+train: E:\DataSets\MTSD\yolo54\images\train
+val: E:\DataSets\MTSD\yolo54\images\val
+test: E:\DataSets\MTSD\yolo54\images\test
 
 nc: 54  # 类别数量
 

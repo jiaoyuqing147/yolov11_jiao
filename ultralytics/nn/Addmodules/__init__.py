@@ -8,4 +8,5 @@ from .LDConv import *
 from .RCSOSA import *
 from .ASFFHead import *
 from .FASFFHead_P234 import *
+from .FASFFHead_P345 import *
 from .EUCB import *
