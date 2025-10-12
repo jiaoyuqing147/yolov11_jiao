@@ -1130,7 +1130,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         # start 主干网络下面的代码为自己手动添加,源代码中不包含, 字典中包含了所有的主干版本,根据你自己需要的模型添加对应的版本即可.
         elif m in {
             MobileNetV4ConvSmall, MobileNetV4HybridMedium, MobileNetV4ConvMedium, MobileNetV4ConvLarge,
-            MobileNetV4HybridLarge,
+            MobileNetV4HybridLarge,revcol_tiny, revcol_base, revcol_small, revcol_large, revcol_xlarge,#revcol是参数量比较大的一种backbone
         }:
             m = m(*args)
             c2 = m.width_list  # 返回通道列表
@@ -1202,7 +1202,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         # if i == 0:
         #     ch = []
         # ch.append(c2)
-        #替换上面这块注释掉的代码
+        #替换上面这块注释掉的代码,from jack
         if verbose:
             LOGGER.info(f'{i:>3}{str(f):>20}{n_:>3}{m.np:10.0f}  {t:<45}{str(args):<30}')  # print
 
