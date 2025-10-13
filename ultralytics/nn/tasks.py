@@ -1131,6 +1131,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         elif m in {
             MobileNetV4ConvSmall, MobileNetV4HybridMedium, MobileNetV4ConvMedium, MobileNetV4ConvLarge,
             MobileNetV4HybridLarge,revcol_tiny, revcol_base, revcol_small, revcol_large, revcol_xlarge,#revcol是参数量比较大的一种backbone
+            LSKNET_Tiny,LSKNET_Large
         }:
             m = m(*args)
             c2 = m.width_list  # 返回通道列表
