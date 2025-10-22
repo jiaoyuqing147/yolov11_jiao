@@ -47,6 +47,34 @@ class DWT2D(nn.Module):
         LL, LH, HL, HH = y[:, 0], y[:, 1], y[:, 2], y[:, 3]  # each [B,C,h2,w2]
         return LL, LH, HL, HH
 
+class WaveletDownsample(nn.Module):
+    """ 用 Haar DWT 做 2× 下采样，只用 LL+LH，1×1 融合到目标通道 """
+    def __init__(self, in_ch, out_ch):
+        super().__init__()
+        self.dwt = DWT2D()
+        self.proj = nn.Conv2d(in_ch*2, out_ch, 1, bias=False)  # LL+LH
+        self.bn   = nn.BatchNorm2d(out_ch)
+        self.act  = nn.GELU()
+    def forward(self, x):
+        LL, LH, HL, HH = self.dwt(x)         # [B,in_ch,H/2,W/2]
+        y = torch.cat([LL, LH], dim=1)       # [B,2*in_ch,H/2,W/2]
+        return self.act(self.bn(self.proj(y)))
+
+class WaveletPatchEmbed(nn.Module):
+    """
+    与 OverlapPatchEmbed 接口一致：forward(x) -> (x_embed, H, W)
+    用 Haar DWT 做 2x 下采样，仅用 LL+LH，1x1 融合到 embed_dim。
+    """
+    def __init__(self, in_chans, embed_dim):
+        super().__init__()
+        self.down = WaveletDownsample(in_chans, embed_dim)
+
+    def forward(self, x):
+        y = self.down(x)                 # [B,embed_dim,H/2,W/2]
+        H, W = y.shape[-2], y.shape[-1]
+        return y, H, W
+
+
 
 class DWConv(nn.Module):
     def __init__(self, dim=768):
@@ -91,13 +119,18 @@ class LSKblock(nn.Module):
 
         # ★ 新增：Wavelet 分支（DWT→上采样→1x1压缩到 C/2）
         self.dwt = DWT2D()
-        self.wave_proj = nn.Conv2d(dim * 4, dim // 2, 1)   # 4个子带拼接到 C/2
+        #self.wave_proj = nn.Conv2d(dim * 4, dim // 2, 1)   # 4个子带拼接到 C/2
+        self.wave_proj = nn.Conv2d(dim * 2, dim // 2, 1)   # ★ 仅用 LL+LH，两倍通道
+
         self.wave_bn = nn.BatchNorm2d(dim // 2)
         self.wave_act = nn.GELU()
 
         # 空间注意力：由 2 通道 (avg/max) 生成 3 路权重
         self.conv_squeeze = nn.Conv2d(2, 3, 7, padding=3)  # ★ 原来是 2→2，这里改为 2→3
         self.conv = nn.Conv2d(dim // 2, dim, 1)
+
+        # ★ 新增：小波分支可学习缩放（初值 0.7，可按需调 0.5~1.5）
+        self.alpha = nn.Parameter(torch.tensor(0.7))
 
     def forward(self, x):
         B, C, H, W = x.shape
@@ -110,8 +143,12 @@ class LSKblock(nn.Module):
 
         # 分支3：Wavelet（DWT 返回 H/2,W/2，需要上采样回 H,W）
         LL, LH, HL, HH = self.dwt(x)           # each [B,C,H/2,W/2]
-        up = lambda t: F.interpolate(t, size=(H, W), mode='bilinear', align_corners=False)
-        wave = torch.cat([up(LL), up(LH), up(HL), up(HH)], dim=1)   # [B,4C,H,W]
+        #up = lambda t: F.interpolate(t, size=(H, W), mode='bilinear', align_corners=False)
+
+        up = lambda t: F.interpolate(t, size=(H, W), mode='nearest')  # ★ 改为最近邻
+        #wave = torch.cat([up(LL), up(LH), up(HL), up(HH)], dim=1)   # [B,4C,H,W]
+        wave = torch.cat([up(LL), up(LH)], dim=1)                   # ★ [B,2C,H,W]
+
         wave = self.wave_act(self.wave_bn(self.wave_proj(wave)))    # [B,C/2,H,W]
 
         # 三路拼接 → 生成空间权重 (3 maps) → 逐像素加权
@@ -119,12 +156,18 @@ class LSKblock(nn.Module):
         avg_attn = torch.mean(attn_cat, dim=1, keepdim=True)
         max_attn, _ = torch.max(attn_cat, dim=1, keepdim=True)
         agg = torch.cat([avg_attn, max_attn], dim=1)        # [B,2,H,W]
-        sig = self.conv_squeeze(agg).sigmoid()              # [B,3,H,W]
+        # sig = self.conv_squeeze(agg).sigmoid()              # [B,3,H,W]
+        #
+        # w1 = sig[:, 0:1, :, :]
+        # w2 = sig[:, 1:2, :, :]
+        # w3 = sig[:, 2:3, :, :]
+        # attn = w1 * attn1 + w2 * attn2 + w3 * wave          # [B,C/2,H,W]
 
-        w1 = sig[:, 0:1, :, :]
-        w2 = sig[:, 1:2, :, :]
-        w3 = sig[:, 2:3, :, :]
-        attn = w1 * attn1 + w2 * attn2 + w3 * wave          # [B,C/2,H,W]
+        logits = self.conv_squeeze(agg)                     # [B,3,H,W]
+        w = torch.softmax(logits, dim=1)                    # ★ softmax 替代 sigmoid
+        w1, w2, w3 = w[:, 0:1], w[:, 1:2], w[:, 2:3]
+        attn = w1 * attn1 + w2 * attn2 + self.alpha * (w3 * wave)  # ★ 给小波以 α 缩放
+
         attn = self.conv(attn)                               # [B,C,H,W]
         return x * attn
 
@@ -213,11 +256,23 @@ class LSKNet_Wavelet(nn.Module):
         cur = 0
 
         for i in range(num_stages):
-            patch_embed = OverlapPatchEmbed(img_size=img_size if i == 0 else img_size // (2 ** (i + 1)),
-                                            patch_size=7 if i == 0 else 3,
-                                            stride=4 if i == 0 else 2,
-                                            in_chans=in_chans if i == 0 else embed_dims[i - 1],
-                                            embed_dim=embed_dims[i], norm_cfg=norm_cfg)
+            # patch_embed = OverlapPatchEmbed(img_size=img_size if i == 0 else img_size // (2 ** (i + 1)),
+            #                                 patch_size=7 if i == 0 else 3,
+            #                                 stride=4 if i == 0 else 2,
+            #                                 in_chans=in_chans if i == 0 else embed_dims[i - 1],
+            #                                 embed_dim=embed_dims[i], norm_cfg=norm_cfg)
+
+            in_ch = in_chans if i == 0 else embed_dims[i - 1]
+            out_ch = embed_dims[i]
+            if i == 1:  # ★ Stage2 用小波下采样（返回 x,H,W）
+                patch_embed = WaveletPatchEmbed(in_chans=in_ch, embed_dim=out_ch)
+            else:
+                patch_embed = OverlapPatchEmbed(
+                    img_size=img_size if i == 0 else img_size // (2 ** (i + 1)),
+                    patch_size=7 if i == 0 else 3,
+                    stride=4 if i == 0 else 2,
+                    in_chans=in_ch,
+                    embed_dim=out_ch, norm_cfg=norm_cfg)
 
             block = nn.ModuleList([Block(
                 dim=embed_dims[i], mlp_ratio=mlp_ratios[i], drop=drop_rate, drop_path=dpr[cur + j], norm_cfg=norm_cfg)
