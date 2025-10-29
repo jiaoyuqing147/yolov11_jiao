@@ -302,7 +302,7 @@ class BaseModel(nn.Module):
         """
         self = super()._apply(fn)
         m = self.model[-1]  # Detect()
-        if isinstance(m, (Detect, FASFFHead, FASFFHead_Jack,ASFFHead,FASFFHead_P234)): #FASFFHead在此注册 # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
+        if isinstance(m, (Detect, FASFFHead, FASFFHead_Jack,ASFFHead,FASFFHead_P234,FASFFHead_P345)): #FASFFHead在此注册 # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
             m.stride = fn(m.stride)
             m.anchors = fn(m.anchors)
             m.strides = fn(m.strides)
@@ -368,7 +368,7 @@ class DetectionModel(BaseModel):
 
         # Build strides
         m = self.model[-1]  # Detect()
-        if isinstance(m, (Detect, FASFFHead, FASFFHead_Jack,ASFFHead,FASFFHead_P234)):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
+        if isinstance(m, (Detect, FASFFHead, FASFFHead_Jack,ASFFHead,FASFFHead_P234,FASFFHead_P345)):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
             '''
             🔹 这个虚拟输入图像（256×256）只是用来跑一次 forward 来辅助推断 stride；
             🔹 模型的所有参数（通道、卷积核、激活函数、BN）都不依赖这个尺寸；
@@ -1130,7 +1130,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         # start 主干网络下面的代码为自己手动添加,源代码中不包含, 字典中包含了所有的主干版本,根据你自己需要的模型添加对应的版本即可.
         elif m in {
             MobileNetV4ConvSmall, MobileNetV4HybridMedium, MobileNetV4ConvMedium, MobileNetV4ConvLarge,
-            MobileNetV4HybridLarge,
+            MobileNetV4HybridLarge,revcol_tiny, revcol_base, revcol_small, revcol_large, revcol_xlarge,#revcol是参数量比较大的一种backbone
+            LSKNET_Tiny,LSKNET_Large,#LSKNET非常轻量化，在MTSD上效果很好
+            LSKNET_Wavelet_Tiny,LSKNET_Wavelet_Large,
+            EMO_1M, EMO_2M,EMO_5M,EMO_6M,
         }:
             m = m(*args)
             c2 = m.width_list  # 返回通道列表
@@ -1158,7 +1161,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [[ch[x] for x in f]]
         elif m is Concat:
             c2 = sum(ch[x] for x in f)
-        elif m in frozenset({Detect, WorldDetect, Segment, Pose, OBB, ImagePoolingAttn, v10Detect, FASFFHead, FASFFHead_Jack,ASFFHead,FASFFHead_P234}):
+        elif m in frozenset({Detect, WorldDetect, Segment, Pose, OBB, ImagePoolingAttn, v10Detect, FASFFHead, FASFFHead_Jack,ASFFHead,FASFFHead_P234,FASFFHead_P345}):
             args.append([ch[x] for x in f])
             if m is Segment:
                 args[2] = make_divisible(min(args[2], max_channels) * width, 8)
@@ -1202,7 +1205,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         # if i == 0:
         #     ch = []
         # ch.append(c2)
-        #替换上面这块注释掉的代码
+        #替换上面这块注释掉的代码,from jack
         if verbose:
             LOGGER.info(f'{i:>3}{str(f):>20}{n_:>3}{m.np:10.0f}  {t:<45}{str(args):<30}')  # print
 
@@ -1306,7 +1309,7 @@ def guess_model_task(model):
                 return "pose"
             elif isinstance(m, OBB):
                 return "obb"
-            elif isinstance(m, (Detect, WorldDetect, v10Detect, FASFFHead, FASFFHead_Jack,ASFFHead,FASFFHead_P234)):
+            elif isinstance(m, (Detect, WorldDetect, v10Detect, FASFFHead, FASFFHead_Jack,ASFFHead,FASFFHead_P234,FASFFHead_P345)):
                 return "detect"
 
     # Guess from model filename

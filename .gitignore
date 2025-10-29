@@ -182,6 +182,8 @@ calibration_*.npy
 .pycharmrc.cmd
 
 # Local-only training scripts
+heatmap_draw_*.py
+detection_result_*.py
 train_tt100k_pro_desktop.py
 train_tt100k_pro_chu*.py
 train_tt100k_pro_laptop*.py
@@ -193,6 +195,8 @@ run_all_train_scipts_*.py
 val_EMTD_*.py
 val_myxlab_*.py
 train_chu_*.py
+train_yoga_*.py
+val_*.py
 train_distillation_*.py
 train_onlinedistillation_*.py
 #log files
