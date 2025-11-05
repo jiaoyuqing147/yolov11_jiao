@@ -1059,7 +1059,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             RCSOSA,# from pro jack
             C3k2_RepVGG,#from pro jack
             RCSOSA_Lite,#from  jack
-            RCSOSA_Lite_SmallObj#from jack
+            RCSOSA_Lite_SmallObj,#from jack
+            C2PSA_EMA,#from pro jack
+            C2CASAB#from jack
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1122,6 +1124,12 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 legacy = False
                 if scale in "mlx":
                     args[3] = True
+            if m in {EMA}:  #from jack
+                c2 = ch[f]
+                args = [c2, *args]
+            if m in {C2CASAB}:  #from jack
+                c2 = ch[f]
+                args = [c2, *args]
 
 
         elif m is Bi_FPN:             #add BiFPN jack 为了确保Bi_FPN 模块知道它需要融合多少个输入特征图
