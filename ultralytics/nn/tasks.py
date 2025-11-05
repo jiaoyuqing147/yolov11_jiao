@@ -1061,7 +1061,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             RCSOSA_Lite,#from  jack
             RCSOSA_Lite_SmallObj,#from jack
             C2PSA_EMA,#from pro jack
-            C2CASAB#from jack
+            C2CASAB,#from jack
+            C2CASAB_heavey,#from jack
+            DSUB,#from jack
+            RLAB,#from jack
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1091,6 +1094,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C3k2_RepVGG, #from pro jack
             RCSOSA_Lite,#from jack
             RCSOSA_Lite_SmallObj,#from jack
+            RLAB,  # from jack
         }
     )
 
@@ -1128,6 +1132,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 c2 = ch[f]
                 args = [c2, *args]
             if m in {C2CASAB}:  #from jack
+                c2 = ch[f]
+                args = [c2, *args]
+            if m in {C2CASAB_heavey}:  #from jack
                 c2 = ch[f]
                 args = [c2, *args]
 

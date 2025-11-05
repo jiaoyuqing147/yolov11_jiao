@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from ultralytics.nn.modules import Conv  # 与C2PSA保持一致的Conv封装
 
 __all__ = ['C2CASAB']
-
+#这玩意改编自论文，但是是jack改编的
 # ---- 通道注意力 ----
 class ChannelAttention(nn.Module):
     def __init__(self, channels, reduction=16):
