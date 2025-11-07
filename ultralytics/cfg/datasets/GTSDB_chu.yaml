@@ -1,6 +1,6 @@
-train: /home/jiaoyuqing/AlgorithmCodes/datasets/GTSDB/yolo43/images/train
-val: /home/jiaoyuqing/AlgorithmCodes/datasets/GTSDB/yolo43/images/val
-test: /home/jiaoyuqing/AlgorithmCodes/datasets/GTSDB/yolo43/images/test
+train: /home/jiaoyuqing/bigspace/workspaceJack/datasets/GTSDB/yolo43/images/train
+val: /home/jiaoyuqing/bigspace/workspaceJack/datasets/GTSDB/yolo43/images/val
+test: /home/jiaoyuqing/bigspace/workspaceJack/datasets/GTSDB/yolo43/images/test
 
 nc: 43  # 类别数量
 
