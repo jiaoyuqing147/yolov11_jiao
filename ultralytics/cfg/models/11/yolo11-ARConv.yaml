@@ -19,39 +19,42 @@ backbone:
   - [-1, 1, Conv,   [256, 3, 2]]         # 3-P3/8
   - [-1, 2, C3k2,   [512, False, 0.25]]  # 4
   - [-1, 1, Conv,   [512, 3, 2]]         # 5-P4/16
-  - [-1, 2, C3k2,   [512, True]]         # 6 (P4)
+  - [-1, 2, C3k2,   [512, True]]         # 6  P4 主干输出 (40x40)
 
-  # 这里做最后一次下采样，得到 P5/32
-  - [-1, 1, Conv,   [1024, 3, 2]]        # 7-P5/32
+  # ✅ 方案 A：在 P4 上加一层 ARConv（stride=1，只做增强）
+  - [-1, 1, ARConv, [512, 3, 1]]         # 7  P4/16 ARConv 增强 (40x40)
 
-  # 在 P5 上做一次 ARConv 增强（stride=1，不改分辨率，输出通道减半做轻量化）
-  - [-1, 1, ARConv, [512, 3, 1]]         # 8-P5/32 (增强)
+  # 最后一次下采样，得到 P5/32
+  - [-1, 1, Conv,   [1024, 3, 2]]        # 8  P5/32 (20x20)
 
-  - [-1, 2, C3k2,   [1024, True]]        # 9
-  - [-1, 1, SPPF,   [1024, 5]]           # 10
-  - [-1, 2, C2PSA,  [1024]]              # 11 最终 P5 特征 (20x20)
+  # 在 P5 上再做一次 ARConv 增强
+  - [-1, 1, ARConv, [512, 3, 1]]         # 9  P5/32 ARConv 增强 (20x20)
+
+  - [-1, 2, C3k2,   [1024, True]]        # 10
+  - [-1, 1, SPPF,   [1024, 5]]           # 11
+  - [-1, 2, C2PSA,  [1024]]              # 12 最终 P5 特征 (20x20)
 
 # YOLO11n head
 head:
-  # 上采样 P5 -> P4，并与 backbone P4 拼接
-  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]  # 12: 11 -> 40x40
-  - [[-1, 6], 1, Concat, [1]]                   # 13: cat backbone P4 (6, 40x40)
-  - [-1, 2, C3k2, [512, False]]                 # 14: P4 head
+  # 上采样 P5 -> P4，并与 backbone P4 (ARConv 后的 7) 拼接
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]  # 13: 12 -> 40x40
+  - [[-1, 7], 1, Concat, [1]]                   # 14: cat backbone P4(7, 40x40)
+  - [-1, 2, C3k2, [512, False]]                 # 15: P4 head
 
-  # 上采样 P4 -> P3，并与 backbone P3 拼接
-  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]  # 15: 14 -> 80x80
-  - [[-1, 4], 1, Concat, [1]]                   # 16: cat backbone P3 (4, 80x80)
-  - [-1, 2, C3k2, [256, False]]                 # 17: P3 head (80x80, P3/8-small)
+  # 上采样 P4 -> P3，并与 backbone P3 (4) 拼接
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]  # 16: 15 -> 80x80
+  - [[-1, 4], 1, Concat, [1]]                   # 17: cat backbone P3(4, 80x80)
+  - [-1, 2, C3k2, [256, False]]                 # 18: P3 head (80x80, P3/8-small)
 
   # P3 -> P4
-  - [-1, 1, Conv, [256, 3, 2]]                  # 18: 80x80 -> 40x40
-  - [[-1, 14], 1, Concat, [1]]                  # 19: cat P4 head (14, 40x40)
-  - [-1, 2, C3k2, [512, False]]                 # 20: P4 head refined (40x40, P4/16-medium)
+  - [-1, 1, Conv, [256, 3, 2]]                  # 19: 80x80 -> 40x40
+  - [[-1, 15], 1, Concat, [1]]                  # 20: cat P4 head(15, 40x40)
+  - [-1, 2, C3k2, [512, False]]                 # 21: P4 head refined (40x40, P4/16-medium)
 
   # P4 -> P5
-  - [-1, 1, Conv, [512, 3, 2]]                  # 21: 40x40 -> 20x20
-  - [[-1, 11], 1, Concat, [1]]                  # 22: cat backbone P5 (11, 20x20)
-  - [-1, 2, C3k2, [1024, True]]                 # 23: P5 head refined (20x20, P5/32-large)
+  - [-1, 1, Conv, [512, 3, 2]]                  # 22: 40x40 -> 20x20
+  - [[-1, 12], 1, Concat, [1]]                  # 23: cat backbone P5(12, 20x20)
+  - [-1, 2, C3k2, [1024, True]]                 # 24: P5 head refined (20x20, P5/32-large)
 
   # Detect: 使用最终的 P3/P4/P5 三个头
-  - [[17, 20, 23], 1, Detect, [nc]]             # Detect(P3, P4, P5)
+  - [[18, 21, 24], 1, Detect, [nc]]             # Detect(P3, P4, P5)
