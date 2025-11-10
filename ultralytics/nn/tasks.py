@@ -95,6 +95,7 @@ from ultralytics.utils.torch_utils import (
     scale_img,
     time_sync,
 )
+from .Addmodules.ARConv import C3k2_ARConv1, C3k2_ARConv2
 
 
 class BaseModel(nn.Module):
@@ -1065,6 +1066,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C2CASAB_heavey,#from jack
             DSUB,#from jack
             RLAB,#from jack
+            ARConv,#from jack
+            C3k2_ARConv1,#from jack
+            C3k2_ARConv2,#from jack
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
