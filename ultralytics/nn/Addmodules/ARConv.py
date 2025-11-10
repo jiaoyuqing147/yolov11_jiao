@@ -1,3 +1,4 @@
+from typing import Optional
 
 import torch.nn as nn
 
@@ -124,7 +125,7 @@ class ARConv(nn.Module):
         c2: int,
         k: int = 3,
         s: int = 1,
-        p: int | None = None,
+        p: Optional[int] = None,
         g: int = 1,
         act: bool = True,              # 占位，保持接口一致
         hw_range=(1, 18),
