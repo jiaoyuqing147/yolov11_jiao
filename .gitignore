@@ -201,3 +201,5 @@ train_distillation_*.py
 train_onlinedistillation_*.py
 #log files
 log*.txt
+#联网文件
+chu_connect.py

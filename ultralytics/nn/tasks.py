@@ -95,6 +95,7 @@ from ultralytics.utils.torch_utils import (
     scale_img,
     time_sync,
 )
+from .Addmodules.ARConv import C3k2_ARConv1, C3k2_ARConv2
 
 
 class BaseModel(nn.Module):
@@ -1059,7 +1060,15 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             RCSOSA,# from pro jack
             C3k2_RepVGG,#from pro jack
             RCSOSA_Lite,#from  jack
-            RCSOSA_Lite_SmallObj#from jack
+            RCSOSA_Lite_SmallObj,#from jack
+            C2PSA_EMA,#from pro jack
+            C2CASAB,#from jack
+            C2CASAB_heavey,#from jack
+            DSUB,#from jack
+            RLAB,#from jack
+            ARConv,#from jack
+            C3k2_ARConv1,#from jack
+            C3k2_ARConv2,#from jack
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1089,11 +1098,12 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C3k2_RepVGG, #from pro jack
             RCSOSA_Lite,#from jack
             RCSOSA_Lite_SmallObj,#from jack
+            RLAB,  # from jack
         }
     )
 
     for i, (f, n, m, args) in enumerate(d["backbone"] + d["head"]):  # from, number, module, args
-        t = m   #MobileNetv4 jackjiao
+        t = m   #MobileNetv4 jackjiao,StarNet也需要这个
         m = (
             getattr(torch.nn, m[3:])
             if "nn." in m
@@ -1122,6 +1132,15 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 legacy = False
                 if scale in "mlx":
                     args[3] = True
+            if m in {EMA}:  #from jack
+                c2 = ch[f]
+                args = [c2, *args]
+            if m in {C2CASAB}:  #from jack
+                c2 = ch[f]
+                args = [c2, *args]
+            if m in {C2CASAB_heavey}:  #from jack
+                c2 = ch[f]
+                args = [c2, *args]
 
 
         elif m is Bi_FPN:             #add BiFPN jack 为了确保Bi_FPN 模块知道它需要融合多少个输入特征图
@@ -1132,8 +1151,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             MobileNetV4ConvSmall, MobileNetV4HybridMedium, MobileNetV4ConvMedium, MobileNetV4ConvLarge,
             MobileNetV4HybridLarge,revcol_tiny, revcol_base, revcol_small, revcol_large, revcol_xlarge,#revcol是参数量比较大的一种backbone
             LSKNET_Tiny,LSKNET_Large,#LSKNET非常轻量化，在MTSD上效果很好
-            LSKNET_Wavelet_Tiny,LSKNET_Wavelet_Large,
+            LSKNET_Wavelet_Tiny,LSKNET_Wavelet_Large,#自己做的两个backbone，效果不稳定
             EMO_1M, EMO_2M,EMO_5M,EMO_6M,
+            starnet_s1,starnet_s2,starnet_s3,starnet_s4,starnet_s050,starnet_s100,starnet_s150,
         }:
             m = m(*args)
             c2 = m.width_list  # 返回通道列表
