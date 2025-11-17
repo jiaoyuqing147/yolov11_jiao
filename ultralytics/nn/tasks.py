@@ -1151,7 +1151,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             MobileNetV3_large_n, MobileNetV3_large_s, MobileNetV3_large_m, MobileNetV3_small_n, MobileNetV3_small_s,
             MobileNetV3_small_m,#
             MobileNetV4ConvSmall, MobileNetV4HybridMedium, MobileNetV4ConvMedium, MobileNetV4ConvLarge,
-            MobileNetV4HybridLarge,revcol_tiny, revcol_base, revcol_small, revcol_large, revcol_xlarge,#revcol是参数量比较大的一种backbone
+            MobileNetV4HybridLarge,
+            mobile_vit_small,mobile_vit_x_small,mobile_vit_xx_small,
+            mobile_vit2_xx_small,
+            revcol_tiny, revcol_base, revcol_small, revcol_large, revcol_xlarge,#revcol是参数量比较大的一种backbone
             LSKNET_Tiny,LSKNET_Large,#LSKNET非常轻量化，在MTSD上效果很好
             LSKNET_Wavelet_Tiny,LSKNET_Wavelet_Large,#自己做的两个backbone，效果不稳定
             EMO_1M, EMO_2M,EMO_5M,EMO_6M,

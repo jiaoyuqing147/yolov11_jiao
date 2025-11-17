@@ -22,3 +22,5 @@ from .RLAB import *
 from .ARConv import *
 from .StarNet import *
 from .MobileNetv3 import *
+from .MobileViTv1 import *
+from .MobileViTv2 import *
