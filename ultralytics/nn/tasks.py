@@ -1148,6 +1148,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [length]
         # start 主干网络下面的代码为自己手动添加,源代码中不包含, 字典中包含了所有的主干版本,根据你自己需要的模型添加对应的版本即可.
         elif m in {
+            MobileNetV3_large_n, MobileNetV3_large_s, MobileNetV3_large_m, MobileNetV3_small_n, MobileNetV3_small_s,
+            MobileNetV3_small_m,#
             MobileNetV4ConvSmall, MobileNetV4HybridMedium, MobileNetV4ConvMedium, MobileNetV4ConvLarge,
             MobileNetV4HybridLarge,revcol_tiny, revcol_base, revcol_small, revcol_large, revcol_xlarge,#revcol是参数量比较大的一种backbone
             LSKNET_Tiny,LSKNET_Large,#LSKNET非常轻量化，在MTSD上效果很好
