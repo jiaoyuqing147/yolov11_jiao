@@ -1413,11 +1413,19 @@ def mobile_vit_small(num_classes: int = 1000):
 
 
 if __name__ == "__main__":
-    image_size = (1, 3, 640, 640)
-    image = torch.rand(*image_size)
-    model = mobile_vit_xx_small()
-    out = model(image)
+    image = torch.rand(1, 3, 640, 640)
 
-    print("输出是一个 list，一共有", len(out), "个特征图")
-    for i, f in enumerate(out):
-        print(f"feature[{i}] shape = {f.shape}")
+    models = [
+        ("mobile_vit_xx_small", mobile_vit_xx_small),
+        ("mobile_vit_x_small", mobile_vit_x_small),
+        ("mobile_vit_small", mobile_vit_small),
+    ]
+
+    for name, ctor in models:
+        print(f"\nTesting {name} ...")
+        model = ctor(num_classes=1000)
+        out = model(image)
+
+        print("输出是一个 list，一共有", len(out), "个特征图")
+        for i, f in enumerate(out):
+            print(f"  feature[{i}] shape = {f.shape}")
