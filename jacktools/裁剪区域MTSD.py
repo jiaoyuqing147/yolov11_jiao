@@ -70,8 +70,8 @@ def draw_and_crop(
 
 if __name__ == "__main__":
     # === 示例参数 ===
-    img_path = r"E:\DataSets\ceshiMTSDresult_yolo11_FASFFHead_P234_RCSOSA_wiou_bce_distillation\result_GradCAM.png"   # 原图路径
-    out_dir  = r"E:\DataSets\ceshiMTSDresult_yolo11_FASFFHead_P234_RCSOSA_wiou_bce_distillation"      # 输出目录
+    img_path = r"E:\DataSets\写论文用的\ceshiMTSDresult_yolo11_FASFFHead_P234_RCSOSA_wiou_bce_distillation\result_GradCAM.png"   # 原图路径
+    out_dir  = r"E:\DataSets\写论文用的\ceshiMTSDresult_yolo11_FASFFHead_P234_RCSOSA_wiou_bce_distillation"      # 输出目录
 
     # 左上角+宽高（像素）
     #TT100K使用的裁剪区域

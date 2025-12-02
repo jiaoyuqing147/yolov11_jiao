@@ -70,8 +70,12 @@ def draw_and_crop(
 
 if __name__ == "__main__":
     # === 示例参数 ===
-    img_path = r"E:\DataSets\ceshiresult_yolo11-FASFFHead_P234\result_GradCAMPlusPlus.png"   # 原图路径
-    out_dir  = r"E:\DataSets\ceshiresult_yolo11-FASFFHead_P234"      # 输出目录
+    # img_path = r"E:\DataSets\ceshiresult_yolo11-FASFFHead_P234\result_GradCAMPlusPlus.png"   # 原图路径
+    # out_dir  = r"E:\DataSets\ceshiresult_yolo11-FASFFHead_P234"      # 输出目录
+    img_path = r"E:\DataSets\forpaper\ceshiTT100K\9447_640_vector.svg"   # 原图路径
+    out_dir  = r"E:\DataSets\forpaper\ceshiTT100K"       # 输出目录
+
+
 
     # 左上角+宽高（像素）
     #TT100K使用的裁剪区域
