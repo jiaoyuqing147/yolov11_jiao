@@ -27,7 +27,7 @@ model_names = [
     'YOLO11n + STS',
     'YOLO11n + STS + RCSOSA',
     'YOLO11n + STS + RCSOSA + WIOU',
-    'YOLO11n + STS + RCSOSA + WIOU + Distill',
+    'YOLO11n + STS + RCSOSA + WIOU + KD',
 ]
 
 # ===============================

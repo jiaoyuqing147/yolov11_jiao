@@ -1271,6 +1271,7 @@ class MobileViTV2(nn.Module):
         self.layer_4, out_channels = self._make_layer(
             input_channel=in_channels, cfg=model_cfg["layer4"]
         )
+        self.model_conf_dict["layer4"] = {"in": in_channels, "out": out_channels}  # ★★ 新增这一行
         in_channels = out_channels
         self.layer_5, out_channels = self._make_layer(
             input_channel=in_channels, cfg=model_cfg["layer5"]  # 有可能会被冻结，来进行网络微调
@@ -1289,7 +1290,14 @@ class MobileViTV2(nn.Module):
         self.classifier.add_module(name="fc", module=nn.Linear(in_features=out_channels, out_features=num_classes))
 
         self.apply(self.init_parameters)
-        self.width_list = [i.size(1) for i in self.forward(torch.randn(1, 3, 640, 640))]
+
+        # 从配置中拿到各层输出通道数
+        p3_channels = self.model_conf_dict["layer3"]["out"]  # 对应 1/8 特征
+        p4_channels = self.model_conf_dict["layer4"]["out"]  # 对应 1/16 特征
+        p5_channels = self.model_conf_dict["layer5"]["out"]  # 对应 1/32 特征
+
+        # YOLO 的 parse_model 期望 backbone 提供 5 个尺度的通道数列表，这里只用 P3/P4/P5，就把 P2、P6 置为 0
+        self.width_list = [0, p3_channels, p4_channels, p5_channels, 0]
 
     def _make_layer(self, input_channel, cfg: Dict, dilate: Optional[bool] = False) -> Optional[
         tuple[nn.Sequential, int]]:
@@ -1381,28 +1389,39 @@ class MobileViTV2(nn.Module):
         else:
             pass
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        unique_tensors = {}
-        x = self.conv_1(x)
-        width, height = x.shape[2], x.shape[3]
-        unique_tensors[(width, height)] = x
-        x = self.layer_1(x)
-        width, height = x.shape[2], x.shape[3]
-        unique_tensors[(width, height)] = x
-        x = self.layer_2(x)
-        width, height = x.shape[2], x.shape[3]
-        unique_tensors[(width, height)] = x
-        x = self.layer_3(x)
-        width, height = x.shape[2], x.shape[3]
-        unique_tensors[(width, height)] = x
-        x = self.layer_4(x)
-        width, height = x.shape[2], x.shape[3]
-        unique_tensors[(width, height)] = x
-        x = self.layer_5(x)
-        width, height = x.shape[2], x.shape[3]
-        unique_tensors[(width, height)] = x
-        result_list = list(unique_tensors.values())[-4:]
-        return result_list
+    def forward(self, x):
+        x = self.conv_1(x)  # 1/2
+        x = self.layer_1(x)  # 1/2
+        x = self.layer_2(x)  # 1/4
+
+        p3 = self.layer_3(x)  # 1/8
+        p4 = self.layer_4(p3)  # 1/16
+        p5 = self.layer_5(p4)  # 1/32
+
+        return p5
+
+    # def forward(self, x: torch.Tensor) -> torch.Tensor:
+    #     unique_tensors = {}
+    #     x = self.conv_1(x)
+    #     width, height = x.shape[2], x.shape[3]
+    #     unique_tensors[(width, height)] = x
+    #     x = self.layer_1(x)
+    #     width, height = x.shape[2], x.shape[3]
+    #     unique_tensors[(width, height)] = x
+    #     x = self.layer_2(x)
+    #     width, height = x.shape[2], x.shape[3]
+    #     unique_tensors[(width, height)] = x
+    #     x = self.layer_3(x)
+    #     width, height = x.shape[2], x.shape[3]
+    #     unique_tensors[(width, height)] = x
+    #     x = self.layer_4(x)
+    #     width, height = x.shape[2], x.shape[3]
+    #     unique_tensors[(width, height)] = x
+    #     x = self.layer_5(x)
+    #     width, height = x.shape[2], x.shape[3]
+    #     unique_tensors[(width, height)] = x
+    #     result_list = list(unique_tensors.values())[-4:]
+    #     return result_list
 
 
 def mobile_vit2_xx_small(num_classes: int = 1000):
@@ -1414,10 +1433,14 @@ def mobile_vit2_xx_small(num_classes: int = 1000):
 
 
 if __name__ == "__main__":
-    # Generating Sample image
-    image_size = (1, 3, 640, 640)
-    image = torch.rand(*image_size)
-    # Model
-    model = mobile_vit2_xx_small()
-    out = model(image)
-    print(out)
+    image = torch.randn(1, 3, 640, 640)
+    # model = mobile_vit2_xx_small()
+    # outs = model(image)
+    # for i, feat in enumerate(outs):
+    #     print(i, feat.shape)
+    # print("width_list:", model.width_list)
+    m = mobile_vit2_xx_small()
+    x = torch.zeros(1, 3, 640, 640)
+    outs = m(x)
+    print(outs)
+
