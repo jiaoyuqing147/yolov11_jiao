@@ -1,5 +1,6 @@
 # Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 from .Addmodules import *
+from .newsAddmodules import *
 import contextlib
 import pickle
 import re
@@ -1153,7 +1154,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             MobileNetV4ConvSmall, MobileNetV4HybridMedium, MobileNetV4ConvMedium, MobileNetV4ConvLarge,
             MobileNetV4HybridLarge,
             mobile_vit_small,mobile_vit_x_small,mobile_vit_xx_small,
-            mobile_vit2_xx_small,
+            MobileNetV2,
             revcol_tiny, revcol_base, revcol_small, revcol_large, revcol_xlarge,#revcol是参数量比较大的一种backbone
             LSKNET_Tiny,LSKNET_Large,#LSKNET非常轻量化，在MTSD上效果很好
             LSKNET_Wavelet_Tiny,LSKNET_Wavelet_Large,#自己做的两个backbone，效果不稳定
