@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 import math
 
-__all__ = ['C3k2_RepVGG', 'RCSOSA','RCSOSA_Lite','RCSOSA_Lite_SmallObj']
+__all__ = ['C3k2_RepVGG', 'RCSOSA','RCSOSA_Lite','RCSOSA_Lite_SmallObj','RCSOSA_TS']
 
 
 # build RepVGG block
@@ -396,7 +396,68 @@ class RCSOSA_Lite_SmallObj(nn.Module):
         out = self.concat_proj(x_cat)
         return self.att(out)
 
+class SRMultiScaleLite(nn.Module):
+    def __init__(self, c1, c2):
+        super().__init__()
+        assert c1 % 2 == 0 and c2 % 2 == 0, "Channels must be divisible by 2."
+        c1_ = c1 // 2
+        c2_ = c2 // 2
 
+        # split-transform branch
+        self.dw3 = Conv(c1_, c2_, k=3, s=1, g=c1_)   # 3x3 DWConv
+        self.dw5 = Conv(c1_, c2_, k=5, s=1, g=c1_)   # 5x5 DWConv
+
+        # fuse two scale branches
+        self.fuse = Conv(c2_ * 2, c2_, k=1, s=1)
+
+    def forward(self, x):
+        x1, x2 = x.chunk(2, dim=1)
+
+        b1 = self.dw3(x2)
+        b2 = self.dw5(x2)
+        x2_out = self.fuse(torch.cat([b1, b2], dim=1))
+
+        out = torch.cat((x1, x2_out), dim=1)
+        return self.channel_shuffle(out, 2)
+
+    def channel_shuffle(self, x, groups):
+        b, c, h, w = x.size()
+        cpg = c // groups
+        x = x.view(b, groups, cpg, h, w).transpose(1, 2).contiguous()
+        return x.view(b, -1, h, w)
+
+class RCSOSA_TS(nn.Module):
+    """
+    Traffic-sign-oriented RCSOSA variant
+    Designed for small-object traffic sign detection.
+    """
+    def __init__(self, c1, c2, n=1, att=True, e=0.5):
+        super().__init__()
+        # print(f"RCSOSA_TS init: c1={c1}, c2={c2}, n={n}, e={e}")
+        c_ = make_divisible(int(c1 * e), 8)
+        n_ = max(n // 2, 1)
+
+        # strong front-end representation
+        self.rep_conv = RepVGG(c1, c_)
+
+        # lightweight multi-scale transform blocks
+        self.sr1 = nn.Sequential(*[SRMultiScaleLite(c_, c_) for _ in range(n_)])
+        self.sr2 = nn.Sequential(*[SRMultiScaleLite(c_, c_) for _ in range(n_)])
+
+        # aggregation
+        self.concat_proj = Conv(c_ * 3, c2, k=1)
+
+        # attention refinement
+        self.att = CBAM(c2) if att else nn.Identity()
+
+    def forward(self, x):
+        # print("RCSOSA_TS input shape:", x.shape)
+        x1 = self.rep_conv(x)
+        x2 = self.sr1(x1)
+        x3 = self.sr2(x2)
+        x_cat = torch.cat((x1, x2, x3), dim=1)
+        out = self.concat_proj(x_cat)
+        return self.att(out)
 
 if __name__ == "__main__":
     # Generating Sample image
@@ -429,10 +490,10 @@ if __name__ == "__main__":
     print("SRLite output shape:", out3.shape)
     print()
 
-    print(">>> Testing SRLite_SmallObj")
-    sr_small = SRLite_SmallObj(64, 64)
+    print(">>> Testing RCSOSA_TS")
+    sr_small = RCSOSA_TS(64, 64)
     out4 = sr_small(dummy_input)
-    print("SRLite_SmallObj output shape:", out4.shape)
+    print("RCSOSA_TS output shape:", out4.shape)
     print()
 
     print(">>> Testing CBAM module")
