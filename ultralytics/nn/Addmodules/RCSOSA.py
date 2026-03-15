@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 import math
 
-__all__ = ['C3k2_RepVGG', 'RCSOSA','RCSOSA_Lite','RCSOSA_Lite_SmallObj','RCSOSA_TS']
+__all__ = ['C3k2_RepVGG', 'RCSOSA','RCSOSA_Lite','RCSOSA_Lite_SmallObj','RCSOSA_TS','RCSOSA_LF']
 
 
 # build RepVGG block
@@ -458,6 +458,33 @@ class RCSOSA_TS(nn.Module):
         x_cat = torch.cat((x1, x2, x3), dim=1)
         out = self.concat_proj(x_cat)
         return self.att(out)
+
+class RCSOSA_LF(nn.Module):
+    # LF = Light Fusion
+    def __init__(self, c1, c2, n=1, se=False, e=0.5):
+        super().__init__()
+        n_ = max(n // 2, 1)
+        c_ = make_divisible(int(c1 * e), 8)
+
+        self.conv1 = RepVGG(c1, c_)
+        self.sr1 = nn.Sequential(*[SR(c_, c_) for _ in range(n_)])
+        self.sr2 = nn.Sequential(*[SR(c_, c_) for _ in range(n_)])
+
+        # lighter fusion instead of RepVGG
+        self.conv3 = nn.Sequential(
+            Conv(int(c_ * 3), c2, k=1, s=1),
+            Conv(c2, c2, k=3, s=1)
+        )
+
+        self.se = SEBlock(c2) if se else nn.Identity()
+
+    def forward(self, x):
+        x1 = self.conv1(x)
+        x2 = self.sr1(x1)
+        x3 = self.sr2(x2)
+        x = torch.cat((x1, x2, x3), 1)
+        x = self.conv3(x)
+        return self.se(x)
 
 if __name__ == "__main__":
     # Generating Sample image
