@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 import math
 
-__all__ = ['C3k2_RepVGG', 'RCSOSA','RCSOSA_Lite','RCSOSA_Lite_SmallObj','RCSOSA_TS','RCSOSA_LF']
+__all__ = ['C3k2_RepVGG', 'RCSOSA','RCSOSA_Lite','RCSOSA_Lite_SmallObj','RCSOSA_TS','SFA']
 
 
 # build RepVGG block
@@ -459,8 +459,8 @@ class RCSOSA_TS(nn.Module):
         out = self.concat_proj(x_cat)
         return self.att(out)
 
-class RCSOSA_LF(nn.Module):
-    # LF = Light Fusion
+class SFA(nn.Module):
+    # LF = Light Fusion，本来起的名字是LF，现在改为RFB模块，jack创造，Shuffle Feature Aggregation
     def __init__(self, c1, c2, n=1, se=False, e=0.5):
         super().__init__()
         n_ = max(n // 2, 1)
