@@ -1064,6 +1064,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             RCSOSA_Lite_SmallObj,#from jack
             RCSOSA_TS,#from jack
             SFA,  # from jack
+            OECSOSA,#from jack
+            OECSOSAInterleave,#from jack
             C2PSA_EMA,#from pro jack
             C2CASAB,#from jack
             C2CASAB_heavey,#from jack
@@ -1101,6 +1103,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             RCSOSA, #from pro jack
             RCSOSA_TS,  # from jack
             SFA,  # from jack
+            OECSOSA,#from jack
+            OECSOSAInterleave,#from jack
             C3k2_RepVGG, #from pro jack
             RCSOSA_Lite,#from jack
             RCSOSA_Lite_SmallObj,#from jack

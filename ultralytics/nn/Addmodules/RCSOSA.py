@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 import math
 
-__all__ = ['C3k2_RepVGG', 'RCSOSA','RCSOSA_Lite','RCSOSA_Lite_SmallObj','RCSOSA_TS','SFA']
+__all__ = ['C3k2_RepVGG', 'RCSOSA','RCSOSA_Lite','RCSOSA_Lite_SmallObj','RCSOSA_TS','SFA','OECSOSA','OECSOSAInterleave']
 
 
 # build RepVGG block
@@ -486,6 +486,190 @@ class SFA(nn.Module):
         x = self.conv3(x)
         return self.se(x)
 
+
+#OECSOSA奇偶代替channel shuffle
+class OESR(nn.Module):
+    """
+    Odd-Even Selective Refinement
+    mode='odd_keep': odd channels keep, even channels transform
+    mode='even_keep': even channels keep, odd channels transform
+    """
+    def __init__(self, c1, c2, mode='odd_keep'):
+        super().__init__()
+        assert c1 % 2 == 0 and c2 % 2 == 0, "c1 and c2 must be even for odd-even split."
+        assert mode in ['odd_keep', 'even_keep']
+        self.mode = mode
+
+        c1_ = c1 // 2
+        c2_ = c2 // 2
+        self.repconv = RepVGG(c1_, c2_)
+
+    def forward(self, x):
+        """
+        x: [B, C, H, W]
+        odd channels: x[:, 0::2, :, :]
+        even channels: x[:, 1::2, :, :]
+        """
+        x_odd = x[:, 0::2, :, :]   # channel index 0,2,4,... 这里按Python索引，实际是第1,3,5...个通道
+        x_even = x[:, 1::2, :, :]  # channel index 1,3,5,... 这里按Python索引，实际是第2,4,6...个通道
+
+        if self.mode == 'odd_keep':
+            y_keep = x_odd
+            y_trans = self.repconv(x_even)
+        else:  # even_keep
+            y_keep = x_even
+            y_trans = self.repconv(x_odd)
+
+        # 直接拼接，不恢复原交错顺序
+        out = torch.cat((y_keep, y_trans), dim=1)
+        return out
+
+class OECSOSA(nn.Module):
+    """
+    Odd-Even Cross Selective OSA
+    流程：
+        x -> RepVGG -> x1
+        x1 -> OESR(odd_keep)  -> x2
+        x2 -> OESR(even_keep) -> x3
+        cat(x1, x2, x3) -> RepVGG fusion -> output
+    """
+    def __init__(self, c1, c2, n=1, se=False, e=0.5):
+        super().__init__()
+        n_ = max(n // 2, 1)
+        c_ = make_divisible(int(c1 * e), 8)
+
+        assert c_ % 2 == 0, f"c_ must be even for odd-even split, but got c_={c_}"
+
+        # stage-0 projection
+        self.conv1 = RepVGG(c1, c_)
+
+        # stage-1: odd keep, even transform
+        self.oesr1 = nn.Sequential(*[OESR(c_, c_, mode='odd_keep') for _ in range(n_)])
+
+        # stage-2: even keep, odd transform
+        self.oesr2 = nn.Sequential(*[OESR(c_, c_, mode='even_keep') for _ in range(n_)])
+
+        # final fusion
+        self.conv3 = RepVGG(int(c_ * 3), c2)
+
+        self.se = SEBlock(c2) if se else nn.Identity()
+
+    def forward(self, x):
+        x1 = self.conv1(x)     # [B, c_, H, W]
+        x2 = self.oesr1(x1)    # [B, c_, H, W]
+        x3 = self.oesr2(x2)    # [B, c_, H, W]
+
+        out = torch.cat((x1, x2, x3), dim=1)  # [B, 3*c_, H, W]
+        out = self.conv3(out)                 # [B, c2, H, W]
+        out = self.se(out)
+        return out
+
+
+#无论是通道混洗还是奇偶通道方法，都不会保持原来的通道顺序，干错调整下
+def interleave_merge(x1, x2):
+    """
+    交错合并两个特征图
+    x1: [B, C, H, W]
+    x2: [B, C, H, W]
+
+    输出顺序:
+    x1_0, x2_0, x1_1, x2_1, ..., x1_{C-1}, x2_{C-1}
+    """
+    b, c, h, w = x1.shape
+    out = torch.stack((x1, x2), dim=2)   # [B, C, 2, H, W]
+    out = out.view(b, c * 2, h, w)       # [B, 2C, H, W]
+    return out
+
+class OESRInterleave(nn.Module):
+    """
+    Odd-Even Selective Refinement with interleaved merge
+
+    mode='odd_keep':
+        odd-index subset 保留
+        even-index subset 变换
+
+    mode='even_keep':
+        even-index subset 保留
+        odd-index subset 变换
+    """
+    def __init__(self, c1, c2, mode='odd_keep'):
+        super().__init__()
+        assert c1 % 2 == 0 and c2 % 2 == 0, "c1 and c2 must be even."
+        assert mode in ['odd_keep', 'even_keep']
+        self.mode = mode
+
+        c1_ = c1 // 2
+        c2_ = c2 // 2
+        self.repconv = RepVGG(c1_, c2_)
+
+    def forward(self, x):
+        """
+        x: [B, C, H, W]
+
+        Python索引下：
+        x[:, 0::2] -> 第1,3,5,...个通道
+        x[:, 1::2] -> 第2,4,6,...个通道
+        """
+        x_odd = x[:, 0::2, :, :]   # [B, C/2, H, W]
+        x_even = x[:, 1::2, :, :]  # [B, C/2, H, W]
+
+        if self.mode == 'odd_keep':
+            y_keep = x_odd
+            y_trans = self.repconv(x_even)
+        else:  # even_keep
+            y_keep = x_even
+            y_trans = self.repconv(x_odd)
+
+        # 恢复成交错顺序
+        out = interleave_merge(y_keep, y_trans)  # [B, C, H, W]
+        return out
+
+class OECSOSAInterleave(nn.Module):
+    """
+    Odd-Even Cross Selective OSA with interleaved merge
+
+    流程:
+        x -> RepVGG -> x1
+        x1 -> OESRInterleave(odd_keep)  -> x2
+        x2 -> OESRInterleave(even_keep) -> x3
+        cat(x1, x2, x3) -> RepVGG fusion -> output
+    """
+    def __init__(self, c1, c2, n=1, se=False, e=0.5, stackrep=True):
+        super().__init__()
+        n_ = max(n // 2, 1)
+        c_ = make_divisible(int(c1 * e), 8)
+
+        assert c_ % 2 == 0, f"c_ must be even, but got c_={c_}"
+
+        # 前端投影
+        self.conv1 = RepVGG(c1, c_)
+
+        # 第一阶段：奇位保留，偶位变换
+        self.oesr1 = nn.Sequential(*[
+            OESRInterleave(c_, c_, mode='odd_keep') for _ in range(n_)
+        ])
+
+        # 第二阶段：偶位保留，奇位变换
+        self.oesr2 = nn.Sequential(*[
+            OESRInterleave(c_, c_, mode='even_keep') for _ in range(n_)
+        ])
+
+        # 最终聚合融合
+        self.conv3 = RepVGG(int(c_ * 3), c2)
+
+        self.se = SEBlock(c2) if se else nn.Identity()
+
+    def forward(self, x):
+        x1 = self.conv1(x)      # [B, c_, H, W]
+        x2 = self.oesr1(x1)     # [B, c_, H, W]
+        x3 = self.oesr2(x2)     # [B, c_, H, W]
+
+        out = torch.cat((x1, x2, x3), dim=1)  # [B, 3*c_, H, W]
+        out = self.conv3(out)                 # [B, c2, H, W]
+        out = self.se(out)
+        return out
+
+
 if __name__ == "__main__":
     # Generating Sample image
     # image_size = (1, 64, 240, 240)
@@ -517,10 +701,10 @@ if __name__ == "__main__":
     print("SRLite output shape:", out3.shape)
     print()
 
-    print(">>> Testing RCSOSA_TS")
-    sr_small = RCSOSA_TS(64, 64)
+    print(">>> Testing OECSOSAInterleave")
+    sr_small = OECSOSAInterleave(64, 64)
     out4 = sr_small(dummy_input)
-    print("RCSOSA_TS output shape:", out4.shape)
+    print("OECSOSAInterleave output shape:", out4.shape)
     print()
 
     print(">>> Testing CBAM module")
