@@ -1,0 +1,41 @@
+nc: 80
+scales:
+  n: [0.50, 0.25, 1024]
+
+backbone:
+  - [-1, 1, mobile_vit2_xx_small, []]   # 0 = P5 (256 channel)
+
+  # P5 -> P4
+  - [0, 1, nn.Upsample, [None, 2, "nearest"]]  # 1
+  - [-1, 1, Conv, [192, 3, 1]]                 # 2 = P4 (40x40)
+
+  # P4 -> P3
+  - [2, 1, nn.Upsample, [None, 2, "nearest"]]  # 3
+  - [-1, 1, Conv, [128, 3, 1]]                 # 4 = P3 (80x80)
+
+head:
+  # ----- FPN -----
+  - [0, 1, nn.Upsample, [None, 2, "nearest"]]   # 5
+  - [-1, 1, Conv, [192, 3, 1]]                  # 6
+  - [[6, 2], 1, Concat, [1]]                    # 7
+  - [-1, 2, C3k2, [192, False]]                 # 8
+
+  - [8, 1, nn.Upsample, [None, 2, "nearest"]]   # 9
+  - [-1, 1, Conv, [128, 3, 1]]                  # 10
+  - [[10, 4], 1, Concat, [1]]                   # 11
+  - [-1, 2, C3k2, [128, False]]                 # 12  ← P3_fused
+
+  # ----- PAN -----
+  - [12, 1, Conv, [192, 3, 2]]                  # 13
+  - [[13, 8], 1, Concat, [1]]                   # 14
+  - [-1, 2, C3k2, [192, False]]                 # 15  ← P4_pan
+
+  - [15, 1, Conv, [256, 3, 2]]                  # 16
+  - [[16, 0], 1, Concat, [1]]                   # 17
+  - [-1, 2, C3k2, [256, True]]                  # 18  ← P5_pan
+
+  # ----- Detect -----
+  - [[12, 15, 18], 1, Detect, [nc]]             # 19
+
+
+

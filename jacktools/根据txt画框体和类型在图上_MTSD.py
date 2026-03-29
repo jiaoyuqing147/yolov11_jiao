@@ -6,10 +6,10 @@ import os
 # label_path = r"E:\DataSets\ceshiMTSD\p1830960.txt"
 # save_path = r"E:\DataSets\ceshiMTSD\p1830960_640_drawn.png"  # ← 建议先存 PNG，避免JPEG糊
 
-img_path = r"E:\DataSets\ceshiMTSD\p1840115.jpg"  # ← 你现在用的这张
-label_path = r"E:\DataSets\ceshiMTSD\p1840115.txt"
-save_resized_path = r"E:\DataSets\ceshiMTSD\p1840115_640.png"   # ← 新增：保存缩放后的原图
-save_path = r"E:\DataSets\ceshiMTSD\p1840115_640_drawn.png"  # ← 建议先存 PNG，避免JPEG糊
+img_path = r"E:\DataSets\forpaper\ceshiMTSD\p1840115.jpg"  # ← 你现在用的这张
+label_path = r"E:\DataSets\forpaper\ceshiMTSD\p1840115.txt"
+save_resized_path = r"E:\DataSets\forpaper\ceshiMTSD\p1840115_640.png"   # ← 新增：保存缩放后的原图
+save_path = r"E:\DataSets\forpaper\ceshiMTSD\p1840115_640_drawn.png"  # ← 建议先存 PNG，避免JPEG糊
 
 
 

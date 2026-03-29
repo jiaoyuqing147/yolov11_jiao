@@ -1,5 +1,6 @@
 # Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 from .Addmodules import *
+from .newsAddmodules import *
 import contextlib
 import pickle
 import re
@@ -1061,6 +1062,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C3k2_RepVGG,#from pro jack
             RCSOSA_Lite,#from  jack
             RCSOSA_Lite_SmallObj,#from jack
+            RCSOSA_TS,#from jack
+            SFA,  # from jack
+            OECSOSA,#from jack
+            OECSOSAInterleave,#from jack
             C2PSA_EMA,#from pro jack
             C2CASAB,#from jack
             C2CASAB_heavey,#from jack
@@ -1069,7 +1074,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             ARConv,#from jack
             C3k2_ARConv1,#from jack
             C3k2_ARConv2,#from jack
-        }
+            C3k2_CNCM,#from jack news
+         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
         {
@@ -1095,10 +1101,15 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C3k2_LDConv1,  # from pro jack
             C3k2_LDConv2,  # from pro jack
             RCSOSA, #from pro jack
+            RCSOSA_TS,  # from jack
+            SFA,  # from jack
+            OECSOSA,#from jack
+            OECSOSAInterleave,#from jack
             C3k2_RepVGG, #from pro jack
             RCSOSA_Lite,#from jack
             RCSOSA_Lite_SmallObj,#from jack
             RLAB,  # from jack
+            C3k2_CNCM,  # from jack news
         }
     )
 
@@ -1148,8 +1159,13 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [length]
         # start 主干网络下面的代码为自己手动添加,源代码中不包含, 字典中包含了所有的主干版本,根据你自己需要的模型添加对应的版本即可.
         elif m in {
+            MobileNetV3_large_n, MobileNetV3_large_s, MobileNetV3_large_m, MobileNetV3_small_n, MobileNetV3_small_s,
+            MobileNetV3_small_m,#
             MobileNetV4ConvSmall, MobileNetV4HybridMedium, MobileNetV4ConvMedium, MobileNetV4ConvLarge,
-            MobileNetV4HybridLarge,revcol_tiny, revcol_base, revcol_small, revcol_large, revcol_xlarge,#revcol是参数量比较大的一种backbone
+            MobileNetV4HybridLarge,
+            mobile_vit_small,mobile_vit_x_small,mobile_vit_xx_small,
+            MobileNetV2,
+            revcol_tiny, revcol_base, revcol_small, revcol_large, revcol_xlarge,#revcol是参数量比较大的一种backbone
             LSKNET_Tiny,LSKNET_Large,#LSKNET非常轻量化，在MTSD上效果很好
             LSKNET_Wavelet_Tiny,LSKNET_Wavelet_Large,#自己做的两个backbone，效果不稳定
             EMO_1M, EMO_2M,EMO_5M,EMO_6M,

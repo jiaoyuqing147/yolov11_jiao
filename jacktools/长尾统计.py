@@ -36,24 +36,29 @@ keep_num = int(len(sorted_classes) * 2 / 3)  # ← 新增：计算保留的类�
 sorted_classes = sorted_classes[:keep_num]   # ← 新增：截取前 2/3 类别
 sorted_values = sorted_values[:keep_num]     # ← 新增：截取前 2/3 对应数量
 
+# === 直接使用类别名称作为 x 轴标签 ===
+x_labels = [class_names[cls] for cls in sorted_classes]  # 根据类别索引找到类别名称
+
 # === 绘图 ===
 plt.figure(figsize=(14, 6))
-plt.bar(range(len(sorted_classes)), sorted_values, color='royalblue', edgecolor='black')
+bars = plt.bar(range(len(sorted_classes)), sorted_values, color='royalblue', edgecolor='black')
 
-# === X轴标签控制（可选）===
-# 方案1：只显示编号（推荐）
-plt.xticks(range(len(sorted_classes)), sorted_classes, rotation=90, fontsize=8)
+# === X轴标签控制（使用类别名称）===
+plt.xticks(range(len(sorted_classes)), x_labels, rotation=90, fontsize=12)
 
-# 方案2：如果想显示名称，请取消下行注释：
-# plt.xticks(range(len(sorted_classes)), [class_names[i] for i in sorted_classes], rotation=90, fontsize=6)
+# === 在每个柱状图上添加标签 ===
+# for bar in bars:
+#     yval = bar.get_height()
+#     plt.text(bar.get_x() + bar.get_width() / 2, yval + 0.02,  # 在柱子顶部显示
+#              f'{int(yval)}', ha='center', va='bottom', fontsize=10)
 
-# plt.title("Bounding Box Count per Class (Sorted by Frequency)", fontsize=14)
-plt.xlabel("Class Index ", fontsize=24)  # ← 修改：标题更明确
-plt.ylabel("Number of Bounding Boxes", fontsize=24)
+# === 修改Y轴标签 ===
+plt.xlabel("Class Name", fontsize=24)
+plt.ylabel("Number of Instances", fontsize=24)
 
 # === 优化布局并保存 ===
 plt.tight_layout()
-save_path = os.path.join(base_dir, "bbox_count_sorted_top2_3.png")  # ← 修改：新文件名
+save_path = os.path.join(base_dir, "bbox_count_sorted_top2_3_with_labels.png")  # ← 修改：新文件名
 plt.savefig(save_path, dpi=300)
 plt.show()
 
