@@ -48,10 +48,10 @@ if __name__ == '__main__':
 
     # ✅ 启动训练（全参数可控 + 可复现）
     model.train(
-        data='ultralytics/cfg/datasets/GTSDB_laptop.yaml',  # 修改为你的数据集 yaml
+        data='ultralytics/cfg/datasets/GTSDB_chu.yaml',  # 修改为你的数据集 yaml
         task='detect',
         imgsz=640,
-        epochs=100,
+        epochs=200,
         batch=48,
         workers=8,  # 可设置为多线程，配合 seed_worker 保证复现
         device='cuda',  # 'cpu' or 'cuda'
@@ -59,8 +59,8 @@ if __name__ == '__main__':
         optimizer='SGD',
         resume=False,
         amp=True,
-        project='runsYOLOv3/GTSDB_train',
-        name='exp_reproducible',
+        project='runsYOLOv3/GTSDB_train200',
+        name='exp',
 
         # ✅ 与 batch/epoch 稳定性有关
         single_cls=False,
