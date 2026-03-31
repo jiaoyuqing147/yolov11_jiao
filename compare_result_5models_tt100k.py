@@ -7,32 +7,40 @@ from PIL import Image
 from tqdm import tqdm
 
 # ================== 配置 ==================
-IMAGES_DIR = Path(r"E:\DataSets\tt100k_2021\yolojack\images\val")
-GT_LABELS  = Path(r"E:\DataSets\tt100k_2021\yolojack\labels\val")
+IMAGES_DIR = Path(r"F:\DataSets\tt100k\yolojack\images\test")
+GT_LABELS  = Path(r"F:\DataSets\tt100k\yolojack\labels\test")
 
 # 多模型预测目录
 # 多模型预测目录
+# MODELS = {
+#     "A": Path(r"E:\DataSets\tt100k_2021result\yolo11-FASFFHead_P234_RCSOSA_wiou_bce_distillation"),
+#     "B": Path(r"E:\DataSets\tt100k_2021result\yolo11-FASFFHead_P234_RCSOSA_wiou_bce_train"),
+#     "C": Path(r"E:\DataSets\tt100k_2021result\yolo11-FASFFHead_P234_RCSOSA_ciou_bce_train"),
+#     "D": Path(r"E:\DataSets\tt100k_2021result\yolo11-FASFFHead_P234_train"),
+#     "E": Path(r"E:\DataSets\tt100k_2021result\yolo11_train"),
+# }
+
 MODELS = {
-    "A": Path(r"E:\DataSets\tt100k_2021result\yolo11-FASFFHead_P234_RCSOSA_wiou_bce_distillation"),
-    "B": Path(r"E:\DataSets\tt100k_2021result\yolo11-FASFFHead_P234_RCSOSA_wiou_bce_train"),
-    "C": Path(r"E:\DataSets\tt100k_2021result\yolo11-FASFFHead_P234_RCSOSA_ciou_bce_train"),
-    "D": Path(r"E:\DataSets\tt100k_2021result\yolo11-FASFFHead_P234_train"),
-    "E": Path(r"E:\DataSets\tt100k_2021result\yolo11_train"),
+    "A": Path(r"F:\DataSets\resultTT100k130test\yolo11x-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train300(batch16worker16)"),
+    "B": Path(r"F:\DataSets\resultTT100k130test\yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation"),
+    "C": Path(r"F:\DataSets\resultTT100k130test\yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200"),
+    "D": Path(r"F:\DataSets\resultTT100k130test\yolo11-FASFFHead_P234_train200"),
+    "E": Path(r"F:\DataSets\resultTT100k130test\yolo11_train200"),
 }
 
 ORDER  = ["A","B","C","D","E"]  # 模型顺序
 METRIC = "f1"                   # 或 "ap50"
-STRICT = True                   # True: 严格 >；False: 允许 ≥
+STRICT = False                   # True: 严格 >；False: 允许 ≥
 EPS    = 1e-6                   # 容差
 
 IOU_THR      = 0.50
 CONF_THR_PRF = 0.25
 IMG_EXTS     = (".jpg", ".jpeg", ".png", ".bmp")
 
-OUT_DIR   = Path(r"E:\DataSets\tt100k_2021result\multi_model_compare")
+OUT_DIR   = Path(r"F:\DataSets\resultTT100k130test\multi_model_compare")
 OUT_CSV   = OUT_DIR / f"per_image_{METRIC}_order.csv"
-COPY_TOPK = 3  # Top-K 差值最大（符合排序）拷贝
-COPY_BOTK = 3    # Bottom-K 差值最小（排序最弱）拷贝
+COPY_TOPK = 5  # Top-K 差值最大（符合排序）拷贝
+COPY_BOTK = 5    # Bottom-K 差值最小（排序最弱）拷贝
 COPY_DIR_TOP = OUT_DIR / "TopK"
 COPY_DIR_BOT = OUT_DIR / "BottomK"
 
