@@ -416,16 +416,16 @@ def get_params():
     ]
 
     # 自定义需要绘制热力图的层索引
-    #layers = [16, 19, 22]  # yolo11 用这三个特征图
-    layers = [19, 22, 25]    # yolo11-FASFFHead_P234 模型用这三个特征图
+    layers = [16, 19, 22]  # yolo11 用这三个特征图
+    #layers = [19, 22, 25]    # yolo11-FASFFHead_P234 模型用这三个特征图
 
     for grad_name in grad_list:
         params = {
-            # 'weight': '../runsTT100k130/yolo11_train/exp/weights/best.pt',
+             'weight': '../runsTT100k130/yolo11_train200/exp/weights/best.pt',
             # 'weight': '../runsTT100k130/yolo11-FASFFHead_P234_train/exp/weights/best.pt',
             # 'weight': '../runsTT100k130/yolo11-FASFFHead_P234_RCSOSA_ciou_bce_train/exp/weights/best.pt',
             # 'weight': '../runsTT100k130/yolo11-FASFFHead_P234_RCSOSA_wiou_bce_train/exp/weights/best.pt',
-            'weight': '../runsTT100k130/yolo11-FASFFHead_P234_RCSOSA_wiou_bce_distillation/exp/weights/best.pt',
+            #'weight': '../runsTT100k130/yolo11-FASFFHead_P234_RCSOSA_wiou_bce_distillation/exp/weights/best.pt',
             'device': 'cuda:0',
             'method': grad_name,
             'layer': layers,
@@ -438,13 +438,13 @@ def get_params():
 
 
 if __name__ == '__main__':
-    img_path = r"E:\DataSets\forpaper\ceshiTT100K\9447.jpg"
+    img_path = r"F:\DataSets\resultTT100k130test\multi_model_comparenew\TopK_vis\6892.jpg"
     # root_path = r"E:\DataSets\forpaper\ceshiTT100Kresult_yolo11"
     # root_path = r"E:\DataSets\forpaper\ceshiTT100Kresult_yolo11_FASFFHead_P234"
     #root_path = r"E:\DataSets\forpaper\ceshiTT100Kresult_yolo11_FASFFHead_P234_RCSOSA_ciou_bce"
     # root_path = r"E:\DataSets\forpaper\ceshiTT100Kresult_yolo11_FASFFHead_P234_RCSOSA_wiou_bce"
-    root_path = r"E:\DataSets\forpaper\ceshiTT100Kresult_yolo11_FASFFHead_P234_RCSOSA_wiou_bce_distillation"
-    txt_path = os.path.join(root_path, "9447.txt")
+    root_path = r"F:\DataSets\resultTT100k130test\multi_model_comparenew\TopK_vis"
+    #txt_path = os.path.join(root_path, "9447.txt")
     save_path = root_path
 
     # ========= 默认用法：只保存「纯热力图」 =========
