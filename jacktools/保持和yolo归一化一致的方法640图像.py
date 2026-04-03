@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import os
 
 def letterbox(img, new_shape=640, color=(114, 114, 114)):
     shape = img.shape[:2]  # h, w
@@ -25,6 +26,29 @@ def letterbox(img, new_shape=640, color=(114, 114, 114)):
 
     return img
 
-img = cv2.imread("F:/DataSets/resultTT100k130val/multi_model_comparenew/TopK_vis/87590.jpg")
-img640 = letterbox(img, 640)
-cv2.imwrite("F:/DataSets/resultTT100k130val/multi_model_comparenew/TopK_vis/87590output.jpg", img640)
+
+# ===== 输入输出路径 =====
+input_dir = r"E:\DataSets\resultTT100k130train\multi_model_comparenew\TopK_vis"
+output_dir = r"E:\DataSets\resultTT100k130train\multi_model_comparenew\TopK_vis_640"
+
+# 创建输出文件夹（不存在就创建）
+os.makedirs(output_dir, exist_ok=True)
+
+# ===== 遍历文件夹 =====
+for filename in os.listdir(input_dir):
+    if filename.lower().endswith(('.jpg', '.png', '.jpeg', '.bmp')):
+
+        input_path = os.path.join(input_dir, filename)
+        output_path = os.path.join(output_dir, filename)
+
+        img = cv2.imread(input_path)
+
+        if img is None:
+            print(f"❌ 读取失败: {input_path}")
+            continue
+
+        img640 = letterbox(img, 640)
+
+        cv2.imwrite(output_path, img640)
+
+        print(f"✅ 已处理: {filename}")
