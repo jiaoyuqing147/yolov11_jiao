@@ -28,8 +28,8 @@ def letterbox(img, new_shape=640, color=(114, 114, 114)):
 
 
 # ===== 输入输出路径 =====
-input_dir = r"E:\DataSets\resultTT100k130train\multi_model_comparenew\TopK_vis"
-output_dir = r"E:\DataSets\resultTT100k130train\multi_model_comparenew\TopK_vis_640"
+input_dir = r"F:\DataSets\resultTT100k130val\multi_model_comparenew\TopK_vis"
+output_dir = r"F:\DataSets\resultTT100k130val\multi_model_comparenew\TopK_vis_640"
 
 # 创建输出文件夹（不存在就创建）
 os.makedirs(output_dir, exist_ok=True)

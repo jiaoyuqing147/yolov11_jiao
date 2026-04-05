@@ -26,6 +26,18 @@ from pytorch_grad_cam import (
 from pytorch_grad_cam.utils.image import show_cam_on_image, scale_cam_image
 from pytorch_grad_cam.activations_and_gradients import ActivationsAndGradients
 
+
+# -------------------------------------------------------
+# 全局开关：是否使用 letterbox
+# True  = 使用 letterbox
+# False = 不使用 letterbox，直接用原图
+# -------------------------------------------------------
+USE_LETTERBOX = False
+
+# 可选：如果开启 letterbox，目标尺寸是多少
+LETTERBOX_SIZE = (640, 640)
+
+
 # -------------------------------------------------------
 # 颜色：以后如果要画框/文字，用这里的颜色
 # -------------------------------------------------------
@@ -152,7 +164,27 @@ class yolov8_target(torch.nn.Module):
                 for j in range(4):
                     result.append(pre_post_boxes[i, j])
         return sum(result)
-
+# class yolov8_target(torch.nn.Module):
+#     def __init__(self, ouput_type, conf, ratio) -> None:
+#         super().__init__()
+#         self.ouput_type = ouput_type
+#         self.conf = conf
+#         self.ratio = ratio
+#
+#     def forward(self, data):
+#         post_result, pre_post_boxes = data
+#
+#         score = post_result[0].max()
+#         result = []
+#
+#         if self.ouput_type == 'class' or self.ouput_type == 'all':
+#             result.append(score)
+#
+#         if self.ouput_type == 'box' or self.ouput_type == 'all':
+#             for j in range(4):
+#                 result.append(pre_post_boxes[0, j])
+#
+#         return sum(result)
 
 # -------------------------------------------------------
 # 主类：默认只负责「生成热力图」
@@ -168,6 +200,8 @@ class yolov11_heatmap:
         conf_threshold,
         ratio,
         renormalize=False,
+        use_letterbox=USE_LETTERBOX,
+        letterbox_shape=LETTERBOX_SIZE,
     ):
         device = torch.device(device)
         ckpt = torch.load(weight, map_location=device)
@@ -193,6 +227,11 @@ class yolov11_heatmap:
         self.method = cam_method
         self.target = target
         self.renormalize = renormalize
+        self.weight_path = weight
+
+        # 新增：letterbox 开关
+        self.use_letterbox = use_letterbox
+        self.letterbox_shape = letterbox_shape
 
     # -------------------------------
     # 核心函数：只计算 Grad-CAM 并返回 cam 图
@@ -209,8 +248,14 @@ class yolov11_heatmap:
             raise FileNotFoundError(f"无法读取图像: {img_path}")
         h0, w0 = img0.shape[:2]
 
-        # letterbox
-        img, ratio, dwdh = letterbox(img0)
+        # 根据开关决定是否使用 letterbox
+        if self.use_letterbox:
+            img, ratio, dwdh = letterbox(img0, new_shape=self.letterbox_shape)
+        else:
+            img = img0.copy()
+            ratio = (1.0, 1.0)
+            dwdh = (0.0, 0.0)
+
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img_norm = np.float32(img_rgb) / 255.0
         tensor = torch.from_numpy(np.transpose(img_norm, axes=[2, 0, 1])).unsqueeze(0).to(self.device)
@@ -231,9 +276,26 @@ class yolov11_heatmap:
     # -------------------------------
     def save_cam(self, img_path, save_dir, grad_name):
         os.makedirs(save_dir, exist_ok=True)
+
+        # 原图文件名，不带后缀
+        img_name = os.path.splitext(os.path.basename(img_path))[0]
+
+        # 从权重路径提取模型名
+        # 例如: ../runsTT100k130/yolo11_train200/exp/weights/best.pt
+        # 提取后: yolo11_train200
+        model_name = os.path.basename(
+            os.path.dirname(
+                os.path.dirname(
+                    os.path.dirname(self.weight_path)
+                )
+            )
+        )
+
         cam_image, _, _, _ = self.compute_cam(img_path)
-        out_file = os.path.join(save_dir, f"result_{grad_name}.png")
+
+        out_file = os.path.join(save_dir, f"{img_name}_{grad_name}_{model_name}.png")
         Image.fromarray(cam_image).save(out_file)
+
         print(f"[INFO] 已保存热力图: {out_file}")
 
 
@@ -416,35 +478,34 @@ def get_params():
     ]
 
     # 自定义需要绘制热力图的层索引
-    layers = [16, 19, 22]  # yolo11 用这三个特征图
-    #layers = [19, 22, 25]    # yolo11-FASFFHead_P234 模型用这三个特征图
+    #layers = [16, 19, 22]  # yolo11 用这三个特征图
+    layers = [19, 22, 25]    # yolo11-FASFFHead_P234 模型用这三个特征图
 
     for grad_name in grad_list:
         params = {
-             'weight': '../runsTT100k130/yolo11_train200/exp/weights/best.pt',
-            # 'weight': '../runsTT100k130/yolo11-FASFFHead_P234_train/exp/weights/best.pt',
-            # 'weight': '../runsTT100k130/yolo11-FASFFHead_P234_RCSOSA_ciou_bce_train/exp/weights/best.pt',
-            # 'weight': '../runsTT100k130/yolo11-FASFFHead_P234_RCSOSA_wiou_bce_train/exp/weights/best.pt',
-            #'weight': '../runsTT100k130/yolo11-FASFFHead_P234_RCSOSA_wiou_bce_distillation/exp/weights/best.pt',
+            #'weight': '../runsTT100k130/yolo11_train200/exp/weights/best.pt',
+             'weight': '../runsTT100k130/yolo11-FASFFHead_P234_train200/exp/weights/best.pt',
+            # 'weight': '../runsTT100k130/yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200/exp/weights/best.pt',
+            # 'weight': '../runsTT100k130/yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation/exp/weights/best.pt',
+
             'device': 'cuda:0',
             'method': grad_name,
             'layer': layers,
             'backward_type': 'class',
-            'conf_threshold': 0.2,
-            'ratio': 0.02,      # 取前多少目标参与反传
+            'conf_threshold': 0.35,
+            'ratio': 0.05,      # 取前多少目标参与反传
             'renormalize': False,
+
+            # 新增：这里也可以单独控制
+            'use_letterbox': USE_LETTERBOX,
+            'letterbox_shape': LETTERBOX_SIZE,
         }
         yield params
 
 
 if __name__ == '__main__':
-    img_path = r"F:\DataSets\resultTT100k130test\multi_model_comparenew\TopK_vis\6892.jpg"
-    # root_path = r"E:\DataSets\forpaper\ceshiTT100Kresult_yolo11"
-    # root_path = r"E:\DataSets\forpaper\ceshiTT100Kresult_yolo11_FASFFHead_P234"
-    #root_path = r"E:\DataSets\forpaper\ceshiTT100Kresult_yolo11_FASFFHead_P234_RCSOSA_ciou_bce"
-    # root_path = r"E:\DataSets\forpaper\ceshiTT100Kresult_yolo11_FASFFHead_P234_RCSOSA_wiou_bce"
-    root_path = r"F:\DataSets\resultTT100k130test\multi_model_comparenew\TopK_vis"
-    #txt_path = os.path.join(root_path, "9447.txt")
+    img_path = r"F:\DataSets\resultTT100k130train\multi_model_comparenew\TopK_vis_640\23858.jpg"
+    root_path = r"F:\DataSets\resultTT100k130train\multi_model_comparenew\TopK_vis_640"
     save_path = root_path
 
     # ========= 默认用法：只保存「纯热力图」 =========
