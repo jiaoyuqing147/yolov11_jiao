@@ -7,8 +7,8 @@ from PIL import Image
 from tqdm import tqdm
 
 # ================== 配置 ==================
-IMAGES_DIR = Path(r"F:\DataSets\tt100k\yolojack\images\test")
-GT_LABELS  = Path(r"F:\DataSets\tt100k\yolojack\labels\test")
+IMAGES_DIR = Path(r"F:\DataSets\tt100k\yolojack\images\val")
+GT_LABELS  = Path(r"F:\DataSets\tt100k\yolojack\labels\val")
 
 # 多模型预测目录
 # 多模型预测目录
@@ -21,14 +21,15 @@ GT_LABELS  = Path(r"F:\DataSets\tt100k\yolojack\labels\test")
 # }
 
 MODELS = {
-    "A": Path(r"F:\DataSets\resultTT100k130test\yolo11x-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train300(batch16worker16)"),
-    "B": Path(r"F:\DataSets\resultTT100k130test\yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation"),
-    "C": Path(r"F:\DataSets\resultTT100k130test\yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200"),
-    "D": Path(r"F:\DataSets\resultTT100k130test\yolo11-FASFFHead_P234_train200"),
-    "E": Path(r"F:\DataSets\resultTT100k130test\yolo11_train200"),
+   # "A": Path(r"F:\DataSets\resultTT100k130test\yolo11x-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train300(batch16worker16)"),
+    "A": Path(r"F:\DataSets\resultTT100k130val\yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation"),
+    "B": Path(r"F:\DataSets\resultTT100k130val\yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200"),
+    "C": Path(r"F:\DataSets\resultTT100k130val\yolo11-FASFFHead_P234_train200"),
+    "D": Path(r"F:\DataSets\resultTT100k130val\yolo11_train200"),
 }
 
-ORDER  = ["A","B","C","D","E"]  # 模型顺序
+# ORDER  = ["A","B","C","D","E"]  # 模型顺序
+ORDER  = ["B","C","D","E"]  # 模型顺序
 METRIC = "f1"                   # 或 "ap50"
 STRICT = False                   # True: 严格 >；False: 允许 ≥
 EPS    = 1e-6                   # 容差
@@ -37,7 +38,7 @@ IOU_THR      = 0.50
 CONF_THR_PRF = 0.25
 IMG_EXTS     = (".jpg", ".jpeg", ".png", ".bmp")
 
-OUT_DIR   = Path(r"F:\DataSets\resultTT100k130test\multi_model_compare")
+OUT_DIR   = Path(r"F:\DataSets\resultTT100k130val\multi_model_compare")
 OUT_CSV   = OUT_DIR / f"per_image_{METRIC}_order.csv"
 COPY_TOPK = 5  # Top-K 差值最大（符合排序）拷贝
 COPY_BOTK = 5    # Bottom-K 差值最小（排序最弱）拷贝

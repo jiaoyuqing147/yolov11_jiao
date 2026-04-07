@@ -81,14 +81,15 @@ if __name__ == "__main__":
     # ===== 路径配置 =====
     models_root = Path(r"runsTT100k130")                      # 所有模型所在的根目录
     model_dirs = [
-        "yolo11_train200",
-        "yolo11-FASFFHead_P234_train200",
-        "yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200",
-        "yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation",
-        "yolo11x-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train300(batch16worker16)",
+        "yolo11-OECSOSAInterleave_train200",
+        # "yolo11_train200",
+        # "yolo11-FASFFHead_P234_train200",
+        # "yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200",
+        # "yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation",
+        # "yolo11x-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train300(batch16worker16)",
     ]
-    img_folder   = Path(r"F:\DataSets\tt100k\yolojack\images\test")
-    base_out_dir = Path(r"F:\DataSets\resultTT100k130test")           # 所有结果的统一根目录
+    img_folder   = Path(r"F:\DataSets\tt100k\yolojack\images\val")
+    base_out_dir = Path(r"F:\DataSets\resultTT100k130val")           # 所有结果的统一根目录
     base_out_dir.mkdir(parents=True, exist_ok=True)
 
     # ===== 收集图片 =====

@@ -22,7 +22,7 @@ from pytorch_grad_cam import (
 from pytorch_grad_cam.utils.image import show_cam_on_image, scale_cam_image
 
 
-USE_LETTERBOX = False
+USE_LETTERBOX = True
 LETTERBOX_SIZE = (640, 640)
 
 
@@ -308,31 +308,32 @@ class yolov11_heatmap:
 
 def get_params():
     grad_list = [
-        'GradCAM',
-        'GradCAMPlusPlus',
-        'XGradCAM',
-        'EigenCAM',
+        # 'GradCAM',
+        # 'GradCAMPlusPlus',
+        # 'XGradCAM',
+        #'EigenCAM',
         'HiResCAM',
         'LayerCAM',
-        # 'RandomCAM',
-        # 'EigenGradCAM'
+        #'RandomCAM',
+        'EigenGradCAM'
     ]
     #layers = [16, 19, 22]
     layers = [19, 22, 25]
 
     for grad_name in grad_list:
         params = {
+
+           # 'weight': '../runsTT100k130/yolo11_train200/exp/weights/best.pt',
             # 'weight': '../runsTT100k130/yolo11-OECSOSAInterleave_train200/exp/weights/best.pt',
-            # 'weight': '../runsTT100k130/yolo11_train200/exp/weights/best.pt',
-            # 'weight': '../runsTT100k130/yolo11-FASFFHead_P234_train200/exp/weights/best.pt',
-            #'weight': '../runsTT100k130/yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200/exp/weights/best.pt',
-            'weight': '../runsTT100k130/yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation/exp/weights/best.pt',
+          #'weight': '../runsTT100k130/yolo11-FASFFHead_P234_train200/exp/weights/best.pt',
+            'weight': '../runsTT100k130/yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200/exp/weights/best.pt',
+           #'weight': '../runsTT100k130/yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation/exp/weights/best.pt',
 
             'device': 'cuda:0',
             'method': grad_name,
             'layer': layers,
             'backward_type': 'class',
-            'conf_threshold': 0.10,
+            'conf_threshold': 0.25,
             'ratio': 0.1,
             'renormalize': False,
             'use_letterbox': USE_LETTERBOX,
@@ -350,8 +351,8 @@ def get_params():
 
 
 if __name__ == '__main__':
-    img_path = r"F:\DataSets\resultTT100k130val\multi_model_comparenew\TopK_vis_640\9447.jpg"
-    save_path = r"F:\DataSets\resultTT100k130val\multi_model_comparenew\TopK_vis_640"
+    img_path = r"F:\DataSets\resultTT100k130test\multi_model_comparenew2\TopK_vis\96661.jpg"
+    save_path = r"F:\DataSets\resultTT100k130test\multi_model_comparenew2\TopK_vis"
 
     for each in get_params():
         grad_name = each['method']
