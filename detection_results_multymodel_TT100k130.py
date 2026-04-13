@@ -88,8 +88,8 @@ if __name__ == "__main__":
         # "yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation",
         # "yolo11x-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train300(batch16worker16)",
     ]
-    img_folder   = Path(r"F:\DataSets\tt100k\yolojack\images\val")
-    base_out_dir = Path(r"F:\DataSets\resultTT100k130val")           # 所有结果的统一根目录
+    img_folder   = Path(r"E:\DataSets\tt100k_2021\yolojack\images\test")
+    base_out_dir = Path(r"E:\DataSets\resultTT100k130test")           # 所有结果的统一根目录
     base_out_dir.mkdir(parents=True, exist_ok=True)
 
     # ===== 收集图片 =====

@@ -6,17 +6,17 @@ from PIL import Image
 from tqdm import tqdm
 
 # ================== 配置 ==================
-IMAGES_DIR = Path(r"F:\DataSets\tt100k\yolojack\images\test")
-GT_LABELS  = Path(r"F:\DataSets\tt100k\yolojack\labels\test")
+IMAGES_DIR = Path(r"E:\DataSets\tt100k_2021\yolojack\images\val")
+GT_LABELS  = Path(r"E:\DataSets\tt100k_2021\yolojack\labels\val")
 
 
 # 多模型预测目录
 MODELS = {
-    "A": Path(r"F:\DataSets\resultTT100k130test\yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation"),
-    "B": Path(r"F:\DataSets\resultTT100k130test\yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200"),
-    "C": Path(r"F:\DataSets\resultTT100k130test\yolo11-FASFFHead_P234_train200"),
-    "D": Path(r"F:\DataSets\resultTT100k130test\yolo11-OECSOSAInterleave_train200"),
-    "E": Path(r"F:\DataSets\resultTT100k130test\yolo11_train200"),
+    "A": Path(r"E:\DataSets\resultTT100k130val\yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation"),
+    "B": Path(r"E:\DataSets\resultTT100k130val\yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200"),
+    "C": Path(r"E:\DataSets\resultTT100k130val\yolo11-FASFFHead_P234_train200"),
+    "D": Path(r"E:\DataSets\resultTT100k130val\yolo11-OECSOSAInterleave_train200"),
+    "E": Path(r"E:\DataSets\resultTT100k130val\yolo11_train200"),
 }
 
 ORDER = ["A", "B", "C", "D", "E"]
@@ -32,7 +32,7 @@ IOU_THR = 0.50
 CONF_THR_PRF = 0.25
 IMG_EXTS = (".jpg", ".jpeg", ".png", ".bmp")
 
-OUT_DIR = Path(r"F:\DataSets\resultTT100k130test\multi_model_comparenew2")
+OUT_DIR = Path(r"E:\DataSets\resultTT100k130val\multi_model_comparenew2")
 OUT_CSV = OUT_DIR / "per_image_recall_custom_order_vis.csv"
 
 COPY_TOPK = 10

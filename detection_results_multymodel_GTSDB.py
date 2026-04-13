@@ -82,13 +82,14 @@ if __name__ == "__main__":
     models_root = Path(r"runsGTSDB")                      # 所有模型所在的根目录
     model_dirs = [
         "yolo11_train200",
+        "yolo11-OECSOSAInterleave_train200",
         "yolo11-FASFFHead_P234_train200",
         "yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200",
         "yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation",
-        "yolo11x-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train300(batch16worker16)",
+        # "yolo11x-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train300(batch16worker16)",
     ]
-    img_folder   = Path(r"F:\DataSets\GTSDB\yolo43\images\val")
-    base_out_dir = Path(r"F:\DataSets\resultGTSDBval")           # 所有结果的统一根目录
+    img_folder   = Path(r"E:\DataSets\GTSDB\yolo43\images\val")
+    base_out_dir = Path(r"E:\DataSets\resultGTSDBval")           # 所有结果的统一根目录
     base_out_dir.mkdir(parents=True, exist_ok=True)
 
     # ===== 收集图片 =====
