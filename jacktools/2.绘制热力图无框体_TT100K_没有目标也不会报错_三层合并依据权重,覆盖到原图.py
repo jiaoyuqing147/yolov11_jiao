@@ -3,7 +3,9 @@ import warnings
 warnings.filterwarnings('ignore')
 warnings.simplefilter('ignore')
 
-import torch, cv2, os
+import torch
+import cv2
+import os
 import numpy as np
 
 np.random.seed(0)
@@ -25,10 +27,13 @@ from pytorch_grad_cam.utils.image import show_cam_on_image, scale_cam_image
 USE_LETTERBOX = True
 LETTERBOX_SIZE = (640, 640)
 
+# 是否把热力图贴回原始大图
+OVERLAY_ON_ORIGINAL = True
+
 
 def letterbox(im, new_shape=(640, 640), color=(114, 114, 114),
               auto=True, scaleFill=False, scaleup=True, stride=32):
-    shape = im.shape[:2]
+    shape = im.shape[:2]  # (h, w)
     if isinstance(new_shape, int):
         new_shape = (new_shape, new_shape)
 
@@ -37,7 +42,7 @@ def letterbox(im, new_shape=(640, 640), color=(114, 114, 114),
         r = min(r, 1.0)
 
     ratio = r, r
-    new_unpad = int(round(shape[1] * r)), int(round(shape[0] * r))
+    new_unpad = int(round(shape[1] * r)), int(round(shape[0] * r))  # (w, h)
     dw, dh = new_shape[1] - new_unpad[0], new_shape[0] - new_unpad[1]
 
     if auto:
@@ -55,9 +60,42 @@ def letterbox(im, new_shape=(640, 640), color=(114, 114, 114),
 
     top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
     left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
-    im = cv2.copyMakeBorder(im, top, bottom, left, right,
-                            cv2.BORDER_CONSTANT, value=color)
+
+    im = cv2.copyMakeBorder(
+        im, top, bottom, left, right,
+        cv2.BORDER_CONSTANT, value=color
+    )
     return im, ratio, (dw, dh)
+
+
+def remove_letterbox_padding(cam_map, dwdh):
+    """
+    把 640x640 上的 CAM 去掉 padding，只保留有效图像区域
+    """
+    dw, dh = dwdh
+    left = int(round(dw - 0.1))
+    right = int(round(dw + 0.1))
+    top = int(round(dh - 0.1))
+    bottom = int(round(dh + 0.1))
+
+    h, w = cam_map.shape[:2]
+
+    x1 = left
+    x2 = w - right if right > 0 else w
+    y1 = top
+    y2 = h - bottom if bottom > 0 else h
+
+    # 防御性处理，避免切片越界
+    x1 = max(0, min(x1, w))
+    x2 = max(0, min(x2, w))
+    y1 = max(0, min(y1, h))
+    y2 = max(0, min(y2, h))
+
+    if x2 <= x1 or y2 <= y1:
+        # 极端情况下返回原图
+        return cam_map
+
+    return cam_map[y1:y2, x1:x2]
 
 
 class NoValidDetectionsError(Exception):
@@ -160,6 +198,7 @@ class yolov11_heatmap:
         letterbox_shape=LETTERBOX_SIZE,
         merge_mode='mean',             # 'mean' / 'max' / 'weighted'
         merge_weights=None,            # 例如 [0.5, 0.3, 0.2]
+        overlay_on_original=OVERLAY_ON_ORIGINAL,
     ):
         device = torch.device(device)
         model = attempt_load_weights(weight, device)
@@ -187,6 +226,7 @@ class yolov11_heatmap:
 
         self.merge_mode = merge_mode
         self.merge_weights = merge_weights
+        self.overlay_on_original = overlay_on_original
 
     def _build_cam_for_single_layer(self, layer_module):
         return eval(self.method_name)(self.model, [layer_module])
@@ -219,6 +259,40 @@ class yolov11_heatmap:
 
         return merged
 
+    def _overlay_cam_on_original(self, merged_cam, img0, dwdh):
+        """
+        将 640x640(含padding) 上的 CAM 正确映射回原图尺寸后叠加
+        """
+        # 先去掉 padding
+        cam_crop = remove_letterbox_padding(merged_cam, dwdh)
+
+        # 再 resize 回原图大小
+        cam_orig = cv2.resize(
+            cam_crop,
+            (img0.shape[1], img0.shape[0]),
+            interpolation=cv2.INTER_LINEAR
+        )
+
+        # 归一化到 0~1
+        cam_orig = cam_orig.astype(np.float32)
+        cam_orig = (cam_orig - cam_orig.min()) / (cam_orig.max() - cam_orig.min() + 1e-8)
+
+        img0_rgb = cv2.cvtColor(img0, cv2.COLOR_BGR2RGB)
+        img0_norm = np.float32(img0_rgb) / 255.0
+
+        cam_image = show_cam_on_image(img0_norm, cam_orig, use_rgb=True)
+        return cam_image
+
+    def _overlay_cam_on_input_view(self, merged_cam, img_rgb):
+        """
+        叠加在 640x640 输入图上
+        """
+        img_norm = np.float32(img_rgb) / 255.0
+        merged_cam = merged_cam.astype(np.float32)
+        merged_cam = (merged_cam - merged_cam.min()) / (merged_cam.max() - merged_cam.min() + 1e-8)
+        cam_image = show_cam_on_image(img_norm, merged_cam, use_rgb=True)
+        return cam_image
+
     def compute_cam(self, img_path):
         img0 = cv2.imread(img_path)
         if img0 is None:
@@ -244,7 +318,7 @@ class yolov11_heatmap:
                 grayscale_cam = cam_method(tensor, [self.target])   # [1, h, w]
                 grayscale_cam = grayscale_cam[0, :]
 
-                # resize 到原图显示尺寸
+                # resize 到输入图尺寸（一般是640x640）
                 grayscale_cam = cv2.resize(
                     grayscale_cam,
                     (img_norm.shape[1], img_norm.shape[0]),
@@ -254,14 +328,20 @@ class yolov11_heatmap:
                 cams.append(grayscale_cam)
 
             except NoValidDetectionsError:
-                # 这一层没有有效目标，跳过
                 print(f"[INFO] {self.method_name}: 第 {layer_id} 层没有有效目标，已跳过。")
                 continue
 
         # 所有层都没有有效目标
         if len(cams) == 0:
-            blank_heatmap = np.zeros((img_norm.shape[0], img_norm.shape[1]), dtype=np.float32)
-            blue_img = show_cam_on_image(img_norm, blank_heatmap, use_rgb=True)
+            if self.overlay_on_original:
+                blank_heatmap = np.zeros((img0.shape[0], img0.shape[1]), dtype=np.float32)
+                img0_rgb = cv2.cvtColor(img0, cv2.COLOR_BGR2RGB)
+                img0_norm = np.float32(img0_rgb) / 255.0
+                blue_img = show_cam_on_image(img0_norm, blank_heatmap, use_rgb=True)
+            else:
+                blank_heatmap = np.zeros((img_norm.shape[0], img_norm.shape[1]), dtype=np.float32)
+                blue_img = show_cam_on_image(img_norm, blank_heatmap, use_rgb=True)
+
             print(f"[INFO] {self.method_name}: 所有层都没有有效目标，返回干净蓝底图。")
             return blue_img, img0, ratio, dwdh, False
 
@@ -270,12 +350,15 @@ class yolov11_heatmap:
         if self.renormalize:
             merged_cam = scale_cam_image(merged_cam)
 
-        # 保证范围合法
         merged_cam = merged_cam.astype(np.float32)
         min_v, max_v = merged_cam.min(), merged_cam.max()
         merged_cam = (merged_cam - min_v) / (max_v - min_v + 1e-8)
 
-        cam_image = show_cam_on_image(img_norm, merged_cam, use_rgb=True)
+        if self.overlay_on_original:
+            cam_image = self._overlay_cam_on_original(merged_cam, img0, dwdh)
+        else:
+            cam_image = self._overlay_cam_on_input_view(merged_cam, img_rgb)
+
         return cam_image, img0, ratio, dwdh, True
 
     def save_cam(self, img_path, save_dir, grad_name):
@@ -293,9 +376,11 @@ class yolov11_heatmap:
         cam_image, _, _, _, has_target = self.compute_cam(img_path)
 
         suffix = "" if has_target else "_no_det"
+        size_tag = "_orig" if self.overlay_on_original else "_input640"
+
         out_file = os.path.join(
             save_dir,
-            f"{img_name}_{grad_name}_{self.merge_mode}_{model_name}{suffix}.png"
+            f"{img_name}_{model_name}_{grad_name}_{self.merge_mode}{size_tag}{suffix}.png"
         )
 
         Image.fromarray(cam_image).save(out_file)
@@ -311,23 +396,23 @@ def get_params():
         # 'GradCAM',
         # 'GradCAMPlusPlus',
         # 'XGradCAM',
-        #'EigenCAM',
+        # 'EigenCAM',
         'HiResCAM',
         'LayerCAM',
-        #'RandomCAM',
+        # 'RandomCAM',
         'EigenGradCAM'
     ]
+
     #layers = [16, 19, 22]
     layers = [19, 22, 25]
 
     for grad_name in grad_list:
         params = {
-
-           #'weight': '../runsTT100k130/yolo11_train200/exp/weights/best.pt',
-           #'weight': '../runsTT100k130/yolo11-OECSOSAInterleave_train200/exp/weights/best.pt',
-          #'weight': '../runsTT100k130/yolo11-FASFFHead_P234_train200/exp/weights/best.pt',
-          #'weight': '../runsTT100k130/yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200/exp/weights/best.pt',
-           'weight': '../runsTT100k130/yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation/exp/weights/best.pt',
+            #'weight': '../runsTT100k130/yolo11_train200/exp/weights/best.pt',
+             #'weight': '../runsTT100k130/yolo11-OECSOSAInterleave_train200/exp/weights/best.pt',
+            #'weight': '../runsTT100k130/yolo11-FASFFHead_P234_train200/exp/weights/best.pt',
+            #'weight': '../runsTT100k130/yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200/exp/weights/best.pt',
+            'weight': '../runsTT100k130/yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation/exp/weights/best.pt',
 
             'device': 'cuda:0',
             'method': grad_name,
@@ -344,8 +429,12 @@ def get_params():
             'merge_mode': 'max',
 
             # 对应 layers = [19, 22, 25]
-            # 小目标优先：P2 权重大一些
-            'merge_weights': [0.5, 0.3, 0.2],
+            # 小目标优先：浅层权重大一些
+            'merge_weights': [0.9, 0.05, 0.05],
+
+            # True: 贴回原始大图
+            # False: 仍贴在640输入图
+            'overlay_on_original': True,
         }
         yield params
 
@@ -353,7 +442,7 @@ def get_params():
 if __name__ == '__main__':
     # img_path = r"F:\DataSets\resultTT100k130test\multi_model_comparenew2\TopK_vis\96661.jpg"
     img_path = r"E:\DataSets\resultTT100k130train\multi_model_comparenew2\TopK_vis\23858.jpg"
-    save_path = r"E:\DataSets\resultTT100k130train\multi_model_comparenew2\TopK_vis"
+    save_path = r"E:\DataSets\resultTT100k130train\multi_model_comparenew2\TopK_vis\23858"
 
     for each in get_params():
         grad_name = each['method']
