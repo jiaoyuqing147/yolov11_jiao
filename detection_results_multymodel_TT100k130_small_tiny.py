@@ -35,61 +35,81 @@ def make_colors(num_classes: int, overrides: dict | None = None):
     return base
 
 
-def draw_boxes(img: Image.Image,
-               boxes_xyxy: np.ndarray,
-               confs: np.ndarray,
-               classes: np.ndarray,
-               class_names,
-               colors: list[tuple[int, int, int]]):
-    """在图上画框+标签（类别+置信度）"""
-    draw = ImageDraw.Draw(img)
-    # 字体：默认字体通用，如需更美观可换成 truetype 字体文件
-    font = ImageFont.load_default()
-
+def draw_boxes(img, boxes_xyxy, confs, classes, class_names, colors):
+    # 先转 RGBA，后面才能做透明叠加
+    img = img.convert("RGBA")
     W, H = img.size
+
+    # ===== 字体大小自适应 =====
+    try:
+        font_size = max(8, int(min(W, H) * 0.05))
+        font = ImageFont.truetype("arial.ttf", font_size)
+    except:
+        font = ImageFont.load_default()
+
+    # ===== 框粗细自适应 =====
+    BOX_WIDTH = max(2, int(min(W, H) * 0.004))
+
+    # 先画不透明框
+    draw = ImageDraw.Draw(img)
+
     for (x1, y1, x2, y2), conf, cls in zip(boxes_xyxy, confs, classes):
         cls = int(cls)
         color = colors[cls % len(colors)]
-        # 加深：每个通道乘以1.8（上限255），上面的设置，颜色太浅了，使用下方代码加粗
         color = tuple(min(255, int(c * 1.2)) for c in color)
 
-        # 1) 画边框,若要调整粗细，改变数字大小即可
-        draw.rectangle([x1, y1, x2, y2], outline=color, width=4)
+        # ===== 画框（不透明）=====
+        draw.rectangle([x1, y1, x2, y2], outline=color, width=BOX_WIDTH)
 
-        # 2) 画左上角标签背景 + 文本（类别 名称 + 置信度）
+        # ===== 标签 =====
         label = f"{class_names[cls]} {conf:.2f}"
 
-        # Pillow 新旧版本兼容：优先 textbbox，失败则用 textsize
         try:
             l, t, r, b = draw.textbbox((0, 0), label, font=font)
             text_w, text_h = r - l, b - t
-        except Exception:
+        except:
             text_w, text_h = draw.textsize(label, font=font)
 
-        # 让标签框不越界
         tx = max(0, min(int(x1), W - text_w - 1))
-        ty = max(0, int(y1) - text_h - 2)
+        ty = max(0, int(y1) - text_h - 6)
 
-        # 背景与边框同色，文字黑色
-        draw.rectangle([tx, ty, tx + text_w, ty + text_h], fill=color)
-        draw.text((tx, ty), label, fill=(0, 0, 0), font=font)
+        # ===== 半透明标签背景 =====
+        pad = 4
+        alpha = 200  # 0~255，推荐 100~150
 
-    return img
+        overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
+        overlay_draw = ImageDraw.Draw(overlay)
 
+        overlay_color = (color[0], color[1], color[2], alpha)
+        overlay_draw.rectangle(
+            [tx - pad, ty - pad, tx + text_w + pad, ty + text_h + pad],
+            fill=overlay_color
+        )
+
+        img = Image.alpha_composite(img, overlay)
+
+        # 重新建立 draw，继续在合成后的图上画字
+        draw = ImageDraw.Draw(img)
+
+        # ===== 白字 =====
+        draw.text((tx, ty), label, fill=(255, 255, 255, 255), font=font)
+
+    # 保存成 jpg 前最好转回 RGB
+    return img.convert("RGB")
 
 if __name__ == "__main__":
     # ===== 路径配置 =====
-    models_root = Path(r"runsGTSDB")                      # 所有模型所在的根目录
+    models_root = Path(r"runsTT100k130")                      # 所有模型所在的根目录
     model_dirs = [
-        # "yolo11_train200",
-        "yolo11-OECSOSAInterleave_train200",
+        # "yolo11-OECSOSAInterleave_train200",
+        "yolo11_train200",
         # "yolo11-FASFFHead_P234_train200",
-        # "yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200",
-        # "yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation",
+        "yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200",
+        "yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation",
         # "yolo11x-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train300(batch16worker16)",
     ]
-    img_folder   = Path(r"E:\DataSets\GTSDB\yolo43\images\test")
-    base_out_dir = Path(r"E:\DataSets\resultGTSDBtest")           # 所有结果的统一根目录
+    img_folder   = Path(r"E:\DataSets\tt100k_2021\size_split_test\tiny\images")
+    base_out_dir = Path(r"E:\DataSets\tt100k_2021\size_split_test\tinyresult")           # 所有结果的统一根目录
     base_out_dir.mkdir(parents=True, exist_ok=True)
 
     # ===== 收集图片 =====
@@ -137,13 +157,15 @@ if __name__ == "__main__":
             confs = r.boxes.conf.cpu().numpy()
             clses = r.boxes.cls.cpu().numpy().astype(int)
 
-            img = Image.open(img_path).convert("RGB")
-            img = draw_boxes(img, boxes, confs, clses, model.names, colors)
+            # img = Image.open(img_path).convert("RGB")
+            # img = draw_boxes(img, boxes, confs, clses, model.names, colors)
+            #
+            # save_img = out_dir / f"{img_path.stem}_result.jpg"
+            # img.save(save_img, quality=95)
 
-            save_img = out_dir / f"{img_path.stem}_result.jpg"
-            img.save(save_img, quality=95)
-
-            W, H = img.size
+            # W, H = img.size
+            with Image.open(img_path) as im:
+                W, H = im.size
             save_txt = out_dir / f"{img_path.stem}.txt"
             with open(save_txt, "w", encoding="utf-8") as f:
                 for (x1, y1, x2, y2), conf, cls in zip(boxes, confs, clses):

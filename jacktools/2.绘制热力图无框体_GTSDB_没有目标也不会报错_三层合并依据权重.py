@@ -323,11 +323,11 @@ def get_params():
     for grad_name in grad_list:
         params = {
 
-           #'weight': '../runsTT100k130/yolo11_train200/exp/weights/best.pt',
-           #'weight': '../runsTT100k130/yolo11-OECSOSAInterleave_train200/exp/weights/best.pt',
-          #'weight': '../runsTT100k130/yolo11-FASFFHead_P234_train200/exp/weights/best.pt',
-          #'weight': '../runsTT100k130/yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200/exp/weights/best.pt',
-           'weight': '../runsTT100k130/yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation/exp/weights/best.pt',
+           #'weight': '../runsGTSDB/yolo11_train200/exp/weights/best.pt',
+           #'weight': '../runsGTSDB/yolo11-OECSOSAInterleave_train200/exp/weights/best.pt',
+           #'weight': '../runsGTSDB/yolo11-FASFFHead_P234_train200/exp/weights/best.pt',
+          'weight': '../runsGTSDB/yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200/exp/weights/best.pt',
+           #'weight': '../runsGTSDB/yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation/exp/weights/best.pt',
 
             'device': 'cuda:0',
             'method': grad_name,
@@ -352,8 +352,8 @@ def get_params():
 
 if __name__ == '__main__':
     # img_path = r"F:\DataSets\resultTT100k130test\multi_model_comparenew2\TopK_vis\96661.jpg"
-    img_path = r"E:\DataSets\resultTT100k130train\multi_model_comparenew2\TopK_vis\23858.jpg"
-    save_path = r"E:\DataSets\resultTT100k130train\multi_model_comparenew2\TopK_vis"
+    img_path = r"E:\DataSets\resultGTSDBtrain\multi_model_comparenew2\TopK_vis\00239.jpg"
+    save_path = r"E:\DataSets\resultGTSDBtrain\multi_model_comparenew2\TopK_vis"
 
     for each in get_params():
         grad_name = each['method']

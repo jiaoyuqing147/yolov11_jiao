@@ -6,17 +6,16 @@ from PIL import Image
 from tqdm import tqdm
 
 # ================== 配置 ==================
-IMAGES_DIR = Path(r"E:\DataSets\tt100k_2021\yolojack\images\val")
-GT_LABELS  = Path(r"E:\DataSets\tt100k_2021\yolojack\labels\val")
-
+IMAGES_DIR = Path(r"E:\DataSets\GTSDB\yolo43\images\val")
+GT_LABELS  = Path(r"E:\DataSets\GTSDB\yolo43\labels\val")
 
 # 多模型预测目录
 MODELS = {
-    "A": Path(r"E:\DataSets\resultTT100k130val\yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation"),
-    "B": Path(r"E:\DataSets\resultTT100k130val\yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200"),
-    "C": Path(r"E:\DataSets\resultTT100k130val\yolo11-FASFFHead_P234_train200"),
-    "D": Path(r"E:\DataSets\resultTT100k130val\yolo11-OECSOSAInterleave_train200"),
-    "E": Path(r"E:\DataSets\resultTT100k130val\yolo11_train200"),
+    "A": Path(r"E:\DataSets\resultGTSDBval\yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train_distillation"),
+    "B": Path(r"E:\DataSets\resultGTSDBval\yolo11-FASFFHead_P234_OECSOSAInterleave_ciou_bce_train200"),
+    "C": Path(r"E:\DataSets\resultGTSDBval\yolo11-FASFFHead_P234_train200"),
+    "D": Path(r"E:\DataSets\resultGTSDBval\yolo11-OECSOSAInterleave_train200"),
+    "E": Path(r"E:\DataSets\resultGTSDBval\yolo11_train200"),
 }
 
 ORDER = ["A", "B", "C", "D", "E"]
@@ -32,7 +31,7 @@ IOU_THR = 0.50
 CONF_THR_PRF = 0.25
 IMG_EXTS = (".jpg", ".jpeg", ".png", ".bmp")
 
-OUT_DIR = Path(r"E:\DataSets\resultTT100k130val\multi_model_comparenew2")
+OUT_DIR = Path(r"E:\DataSets\resultGTSDBval\multi_model_comparenew2")
 OUT_CSV = OUT_DIR / "per_image_recall_custom_order_vis.csv"
 
 COPY_TOPK = 10
@@ -45,12 +44,16 @@ COPY_DIR_BOT = OUT_DIR / "BottomK_vis"
 MAIN_MODEL = "A"
 BASE_MODEL = "E"
 
-# 真实目标数必须 > 5
-MIN_GT = 6
-MAX_GT = 999999
+# ================== GT数量统一控制 ==================
+# 1) 参与 match 判断的最小 GT 数量（例如设成 2，表示 GT >= 2 才参与）
+MIN_GT_MATCH = 1
+
+# 2) TopK / BottomK 额外筛选的 GT 范围
+MIN_GT_FILTER = 1
+MAX_GT_FILTER = 999999
 
 # recall 至少比 baseline 高这么多，才算“明显提升”
-MIN_DELTA_RECALL = 0.05
+MIN_DELTA_RECALL = 0.005
 
 # 可视化打分
 RECALL_WEIGHT = 0.5
@@ -295,7 +298,6 @@ def main():
             for name, pred_dir in MODELS.items()
         }
 
-        # 真实目标数过滤：必须 > 5
         n_gt = per_model["A"]["n_gt"]
 
         ok, ok_ab, ok_bc, ok_ce, ok_bd, ok_de = check_custom_order(
@@ -321,15 +323,17 @@ def main():
                 f"{name}_AP50": m["ap50"],
             })
 
-        row["gt_ok"] = int(n_gt > 5)
+        # GT数量是否达到参与match判断的门槛
+        row["gt_ok"] = int(n_gt >= MIN_GT_MATCH)
+
         row["match_AB"] = int(ok_ab)
         row["match_BC"] = int(ok_bc)
         row["match_CE"] = int(ok_ce)
         row["match_BD"] = int(ok_bd)
         row["match_DE"] = int(ok_de)
 
-        # 最终是否通过：GT>5 且两条链同时成立
-        row["match"] = int(ok and (n_gt > 5))
+        # 最终是否通过：GT数量达到要求 且 两条链同时成立
+        row["match"] = int(ok and (n_gt >= MIN_GT_MATCH))
 
         # 用 recall 做主模型和 baseline 的差值
         row["delta_recall_main_base"] = row[f"{MAIN_MODEL}_Recall"] - row[f"{BASE_MODEL}_Recall"]
@@ -356,8 +360,8 @@ def main():
         r for r in rows
         if r["match"] == 1
         and r["delta_recall_main_base"] > MIN_DELTA_RECALL
-        and r[f"{MAIN_MODEL}_GT"] >= MIN_GT
-        and r[f"{MAIN_MODEL}_GT"] <= MAX_GT
+        and r[f"{MAIN_MODEL}_GT"] >= MIN_GT_FILTER
+        and r[f"{MAIN_MODEL}_GT"] <= MAX_GT_FILTER
     ]
 
     rows_match.sort(key=lambda r: r["score_vis"], reverse=True)
@@ -370,8 +374,8 @@ def main():
     rows_bottom = [
         r for r in rows
         if r["match"] == 1
-        and r[f"{MAIN_MODEL}_GT"] >= MIN_GT
-        and r[f"{MAIN_MODEL}_GT"] <= MAX_GT
+        and r[f"{MAIN_MODEL}_GT"] >= MIN_GT_FILTER
+        and r[f"{MAIN_MODEL}_GT"] <= MAX_GT_FILTER
     ]
     rows_bottom.sort(key=lambda r: abs(r["delta_recall_main_base"]))
 
@@ -384,16 +388,16 @@ def main():
     print(f"[OK] Copied bottom {min(COPY_BOTK, len(rows_bottom))} images to -> {COPY_DIR_BOT}")
 
     print("\n===== Summary =====")
-    print(f"Total images             : {len(rows)}")
-    print(f"GT > 5 and order matched : {sum(r['match'] for r in rows)}")
-    print(f"A > B                    : {sum(r['match_AB'] for r in rows)}")
-    print(f"B > C                    : {sum(r['match_BC'] for r in rows)}")
-    print(f"C > E                    : {sum(r['match_CE'] for r in rows)}")
-    print(f"B > D                    : {sum(r['match_BD'] for r in rows)}")
-    print(f"D > E                    : {sum(r['match_DE'] for r in rows)}")
-    print(f"Top candidates           : {len(rows_match)}")
-    print(f"Bottom candidates        : {len(rows_bottom)}")
-    print(f"CSV path                 : {OUT_CSV}")
+    print(f"Total images                    : {len(rows)}")
+    print(f"GT >= {MIN_GT_MATCH} and order matched : {sum(r['match'] for r in rows)}")
+    print(f"A > B                           : {sum(r['match_AB'] for r in rows)}")
+    print(f"B > C                           : {sum(r['match_BC'] for r in rows)}")
+    print(f"C > E                           : {sum(r['match_CE'] for r in rows)}")
+    print(f"B > D                           : {sum(r['match_BD'] for r in rows)}")
+    print(f"D > E                           : {sum(r['match_DE'] for r in rows)}")
+    print(f"Top candidates                  : {len(rows_match)}")
+    print(f"Bottom candidates               : {len(rows_bottom)}")
+    print(f"CSV path                        : {OUT_CSV}")
 
 
 if __name__ == "__main__":
