@@ -1,6 +1,6 @@
-train: /home/jiaoyuqing/bigspace/workspaceJack/datasets/TT100K/tt100k_2021/yolojack/images/train
-val: /home/jiaoyuqing/bigspace/workspaceJack/datasets/TT100K/tt100k_2021/yolojack/images/test
-test: /home/jiaoyuqing/bigspace/workspaceJack/datasets/TT100K/tt100k_2021/yolojack/images/val
+train: /home/jiaoyuqing/tt100k_2021/yolojack/images/train
+val: /home/jiaoyuqing/tt100k_2021/yolojack/images/test
+test: /home/jiaoyuqing/tt100k_2021/yolojack/images/val
 
 
 nc: 130  # 类别数量
