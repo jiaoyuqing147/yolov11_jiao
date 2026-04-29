@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
 
-__all__ = ['OSA']
-
+__all__ = ["OSA", "OSA_eSE", "eSEModule"]
 
 
 def autopad(k, p=None, d=1):
@@ -15,7 +14,7 @@ def autopad(k, p=None, d=1):
 
 
 class Conv(nn.Module):
-    """Standard convolution with BN and SiLU."""
+    """Standard convolution: Conv2d + BN + SiLU."""
     default_act = nn.SiLU()
 
     def __init__(self, c1, c2, k=1, s=1, p=None, g=1, d=1, act=True):
@@ -27,118 +26,98 @@ class Conv(nn.Module):
     def forward(self, x):
         return self.act(self.bn(self.conv(x)))
 
-    def forward_fuse(self, x):
-        return self.act(self.conv(x))
 
-
-class SEBlock(nn.Module):
-    def __init__(self, channels, reduction=16):
+class HSigmoid(nn.Module):
+    def __init__(self, inplace=True):
         super().__init__()
-        hidden = max(channels // reduction, 4)
-        self.pool = nn.AdaptiveAvgPool2d(1)
-        self.fc1 = nn.Conv2d(channels, hidden, kernel_size=1, bias=True)
-        self.act = nn.ReLU(inplace=True)
-        self.fc2 = nn.Conv2d(hidden, channels, kernel_size=1, bias=True)
-        self.gate = nn.Sigmoid()
+        self.inplace = inplace
 
     def forward(self, x):
-        w = self.pool(x)
-        w = self.fc1(w)
-        w = self.act(w)
-        w = self.fc2(w)
-        w = self.gate(w)
+        return torch.clamp(x + 3.0, min=0.0, max=6.0) / 6.0
+
+
+class eSEModule(nn.Module):
+    """Effective Squeeze-Excitation."""
+    def __init__(self, channels):
+        super().__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Conv2d(channels, channels, kernel_size=1, stride=1, padding=0, bias=True)
+        self.hsigmoid = HSigmoid()
+
+    def forward(self, x):
+        w = self.avg_pool(x)
+        w = self.fc(w)
+        w = self.hsigmoid(w)
         return x * w
 
 
-class OSA(nn.Module):
+class _OSA_Base(nn.Module):
     """
-    Standard OSA block:
-    input -> reduce -> stacked convs -> one-shot concat -> fuse
+    Base OSA block for Ultralytics YOLO.
+
+    Args:
+        c1 (int): input channels
+        c2 (int): output channels
+        n (int): number of internal 3x3 conv layers
+        shortcut (bool): residual connection when c1 == c2
+        e (float): expansion ratio for hidden channels
+        use_ese (bool): whether to enable eSE attention
     """
-    def __init__(self, c1, c2, n=3, e=0.5, shortcut=True, se=False):
+
+    def __init__(self, c1, c2, n=3, shortcut=True, e=0.5, use_ese=False):
         super().__init__()
         assert n >= 1, "n must be >= 1"
 
         c_ = int(c2 * e)
-        c_ = max(c_, 8)
+        self.layers = nn.ModuleList()
 
-        self.reduce = Conv(c1, c_, 1, 1)
-        self.blocks = nn.ModuleList([Conv(c_, c_, 3, 1) for _ in range(n)])
-        self.fuse = Conv((n + 1) * c_, c2, 1, 1)
+        in_ch = c1
+        for _ in range(n):
+            self.layers.append(Conv(in_ch, c_, k=3, s=1))
+            in_ch = c_
 
-        self.use_shortcut = shortcut and c1 == c2
-        self.se = SEBlock(c2) if se else nn.Identity()
-
-    def forward(self, x):
-        y = []
-
-        x0 = self.reduce(x)
-        y.append(x0)
-
-        xi = x0
-        for block in self.blocks:
-            xi = block(xi)
-            y.append(xi)
-
-        out = self.fuse(torch.cat(y, dim=1))
-        out = self.se(out)
-
-        return x + out if self.use_shortcut else out
-
-
-class OSA_Lite(nn.Module):
-    """
-    A lighter OSA variant for fair comparison with lightweight YOLO blocks.
-    """
-    def __init__(self, c1, c2, n=2, e=0.5, shortcut=True, se=False):
-        super().__init__()
-        assert n >= 1, "n must be >= 1"
-
-        c_ = int(c2 * e)
-        c_ = max(c_, 8)
-
-        self.reduce = Conv(c1, c_, 1, 1)
-        self.blocks = nn.ModuleList([Conv(c_, c_, 3, 1, g=1) for _ in range(n)])
-        self.fuse = Conv((n + 1) * c_, c2, 1, 1)
-
-        self.use_shortcut = shortcut and c1 == c2
-        self.se = SEBlock(c2) if se else nn.Identity()
+        # concat: original input + outputs of n conv layers
+        self.concat_conv = Conv(c1 + n * c_, c2, k=1, s=1)
+        self.attn = eSEModule(c2) if use_ese else nn.Identity()
+        self.add = shortcut and c1 == c2
 
     def forward(self, x):
-        feats = []
+        identity = x
+        outputs = [x]
 
-        x1 = self.reduce(x)
-        feats.append(x1)
+        y = x
+        for layer in self.layers:
+            y = layer(y)
+            outputs.append(y)
 
-        x2 = x1
-        for block in self.blocks:
-            x2 = block(x2)
-            feats.append(x2)
+        out = torch.cat(outputs, dim=1)
+        out = self.concat_conv(out)
+        out = self.attn(out)
 
-        out = self.fuse(torch.cat(feats, dim=1))
-        out = self.se(out)
+        if self.add:
+            out = out + identity
+        return out
 
-        return x + out if self.use_shortcut else out
+
+class OSA(_OSA_Base):
+    """OSA block without eSE."""
+    def __init__(self, c1, c2, n=3, shortcut=True, e=0.5):
+        super().__init__(c1, c2, n=n, shortcut=shortcut, e=e, use_ese=False)
+
+
+class OSA_eSE(_OSA_Base):
+    """OSA block with eSE."""
+    def __init__(self, c1, c2, n=3, shortcut=True, e=0.5):
+        super().__init__(c1, c2, n=n, shortcut=shortcut, e=e, use_ese=True)
 
 
 if __name__ == "__main__":
-    # 生成一个模拟输入（如来自某一层的特征图）
-    dummy_input = torch.randn(1, 64, 80, 80)  # (B, C, H, W)
+    x1 = torch.randn(1, 128, 80, 80)
+    m1 = OSA(128, 128, n=3, shortcut=True, e=0.5)
+    y1 = m1(x1)
+    print("OSA:", x1.shape, "->", y1.shape)
 
-    print(">>> Testing OSA")
-    model1 = OSA(c1=64, c2=64, n=3, e=0.5, shortcut=True, se=True)
-    out1 = model1(dummy_input)
-    print("OSA output shape:", out1.shape)
-    print()
-
-    print(">>> Testing OSA_Lite")
-    model2 = OSA_Lite(c1=64, c2=64, n=2, e=0.5, shortcut=True, se=True)
-    out2 = model2(dummy_input)
-    print("OSA_Lite output shape:", out2.shape)
-    print()
-
-    print(">>> Testing OSA without shortcut")
-    model3 = OSA(c1=64, c2=128, n=3, e=0.5, shortcut=False, se=False)
-    out3 = model3(dummy_input)
-    print("OSA(no shortcut) output shape:", out3.shape)
-    print()
+    x2 = torch.randn(1, 384, 40, 40)
+    m2 = OSA_eSE(384, 256, n=3, shortcut=False, e=0.5)
+    y2 = m2(x2)
+    print("OSA_eSE:", x2.shape, "->", y2.shape)
