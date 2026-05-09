@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-__all__ = ['OSA_JACK']
+__all__ = ['OSA']
 
 
 
@@ -50,7 +50,7 @@ class SEBlock(nn.Module):
         return x * w
 
 
-class OSA_JACK(nn.Module):
+class OSA(nn.Module):
     """
     Standard OSA block:
     input -> reduce -> stacked convs -> one-shot concat -> fuse
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     dummy_input = torch.randn(1, 64, 80, 80)  # (B, C, H, W)
 
     print(">>> Testing OSA")
-    model1 = OSA_JACK(c1=64, c2=64, n=3, e=0.5, shortcut=True, se=True)
+    model1 = OSA(c1=64, c2=64, n=3, e=0.5, shortcut=True, se=True)
     out1 = model1(dummy_input)
     print("OSA output shape:", out1.shape)
     print()
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     print()
 
     print(">>> Testing OSA without shortcut")
-    model3 = OSA_JACK(c1=64, c2=128, n=3, e=0.5, shortcut=False, se=False)
+    model3 = OSA(c1=64, c2=128, n=3, e=0.5, shortcut=False, se=False)
     out3 = model3(dummy_input)
     print("OSA(no shortcut) output shape:", out3.shape)
     print()

@@ -1,6 +1,6 @@
-train: /home/jiaoyuqing/tt100k_2021/yolojack/images/train
-val: /home/jiaoyuqing/tt100k_2021/yolojack/images/test
-test: /home/jiaoyuqing/tt100k_2021/yolojack/images/val
+train: F:\DataSets\tt100k\yolojack\images\train
+val: F:\DataSets\tt100k\yolojack\images\test
+test: F:\DataSets\tt100k\yolojack\images\val
 
 
 nc: 130  # 类别数量
