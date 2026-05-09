@@ -1033,6 +1033,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C2f,
             C2f_Faster,  # CSW-YOLO中的
             C2f_Faster_CGLU,#CSW-YOLO中的
+            CNeB,#ETSR-YOLO中的
+            C3CA,#ETSR-YOLO中的
             C3k2,
             RepNCSPELAN4,
             ELAN1,
@@ -1091,6 +1093,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C2f_Faster,#CSW-YOLO中的
             C2f_Faster_CGLU,#CSW-YOLO中的
             C3k2,
+            CNeB,  # ETSR-YOLO中的
+            C3CA,  # ETSR-YOLO中的
             C2fAttn,
             C3,
             C3TR,
