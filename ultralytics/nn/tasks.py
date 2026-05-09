@@ -1022,6 +1022,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             GhostBottleneck,
             SPP,
             SPPF,
+            SPPF_LSKA,#CSW-YOLO中的
             C2fPSA,
             C2PSA,
             DWConv,
@@ -1030,6 +1031,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C1,
             C2,
             C2f,
+            C2f_Faster,  # CSW-YOLO中的
+            C2f_Faster_CGLU,#CSW-YOLO中的
             C3k2,
             RepNCSPELAN4,
             ELAN1,
@@ -1085,6 +1088,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C1,
             C2,
             C2f,
+            C2f_Faster,#CSW-YOLO中的
+            C2f_Faster_CGLU,#CSW-YOLO中的
             C3k2,
             C2fAttn,
             C3,
