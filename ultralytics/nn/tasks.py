@@ -304,7 +304,7 @@ class BaseModel(nn.Module):
         """
         self = super()._apply(fn)
         m = self.model[-1]  # Detect()
-        if isinstance(m, (Detect, FASFFHead, FASFFHead_Jack,ASFFHead,FASFFHead_P234,FASFFHead_P345)): #FASFFHead在此注册 # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
+        if isinstance(m, (Detect, FASFFHead, FASFFHead_Jack,ASFFHead,FASFFHead_P234,FASFFHead_P345,ASPH)): #FASFFHead在此注册 # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
             m.stride = fn(m.stride)
             m.anchors = fn(m.anchors)
             m.strides = fn(m.strides)
@@ -370,7 +370,7 @@ class DetectionModel(BaseModel):
 
         # Build strides
         m = self.model[-1]  # Detect()
-        if isinstance(m, (Detect, FASFFHead, FASFFHead_Jack,ASFFHead,FASFFHead_P234,FASFFHead_P345)):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
+        if isinstance(m, (Detect, FASFFHead, FASFFHead_Jack,ASFFHead,FASFFHead_P234,FASFFHead_P345,ASPH)):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
             '''
             🔹 这个虚拟输入图像（256×256）只是用来跑一次 forward 来辅助推断 stride；
             🔹 模型的所有参数（通道、卷积核、激活函数、BN）都不依赖这个尺寸；
@@ -1043,6 +1043,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             SPPELAN,
             C2fAttn,
             C3,
+            CAGB,#ESA-YOLO中的
             C3TR,
             C3Ghost,
             nn.ConvTranspose2d,
@@ -1097,6 +1098,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C3CA,  # ETSR-YOLO中的
             C2fAttn,
             C3,
+            CAGB,  # ESA-YOLO中的
             C3TR,
             C3Ghost,
             C3x,
@@ -1210,11 +1212,13 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [[ch[x] for x in f]]
         elif m is Concat:
             c2 = sum(ch[x] for x in f)
-        elif m in frozenset({Detect, WorldDetect, Segment, Pose, OBB, ImagePoolingAttn, v10Detect, FASFFHead, FASFFHead_Jack,ASFFHead,FASFFHead_P234,FASFFHead_P345}):
+        elif m is Fusion:#ESA-YOLO论文里的
+            c2 = ch[f[0]]
+        elif m in frozenset({Detect, WorldDetect, Segment, Pose, OBB, ImagePoolingAttn, v10Detect, FASFFHead, FASFFHead_Jack,ASFFHead,FASFFHead_P234,FASFFHead_P345,ASPH}):
             args.append([ch[x] for x in f])
             if m is Segment:
                 args[2] = make_divisible(min(args[2], max_channels) * width, 8)
-            if m in {Detect, Segment, Pose, OBB}:
+            if m in {Detect, Segment, Pose, OBB, ASPH}:
                 m.legacy = legacy
         elif m is RTDETRDecoder:  # special case, channels arg must be passed in index 1
             args.insert(1, [ch[x] for x in f])
@@ -1358,7 +1362,7 @@ def guess_model_task(model):
                 return "pose"
             elif isinstance(m, OBB):
                 return "obb"
-            elif isinstance(m, (Detect, WorldDetect, v10Detect, FASFFHead, FASFFHead_Jack,ASFFHead,FASFFHead_P234,FASFFHead_P345)):
+            elif isinstance(m, (Detect, WorldDetect, v10Detect, FASFFHead, FASFFHead_Jack,ASFFHead,FASFFHead_P234,FASFFHead_P345,ASPH)):
                 return "detect"
 
     # Guess from model filename
