@@ -29,3 +29,4 @@ from .CSW import *#CSW-YOLO
 from .ETSR import *#ETSR-YOLO
 from .ESA import *#ESA-YOLO
 from .YOLOTS import *#也是个论文
+from .YOLOLLTS import *#也是个论文

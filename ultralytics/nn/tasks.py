@@ -1023,6 +1023,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             SPP,
             SPPF,
             SPPF_LSKA,#CSW-YOLO中的
+            EnhancementModel,#YOLOLLTS中的
             C2fPSA,
             C2PSA,
             DWConv,
@@ -1217,6 +1218,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c2 = sum(ch[x] for x in f)
         elif m is Fusion:#ESA-YOLO论文里的
             c2 = ch[f[0]]
+        elif m is CSSA_1:#YOLOLLTS论文中的
+            c2 = args[0]
+            args = [c2, [ch[x] for x in f]]
         elif m in frozenset({Detect, WorldDetect, Segment, Pose, OBB, ImagePoolingAttn, v10Detect, FASFFHead, FASFFHead_Jack,ASFFHead,FASFFHead_P234,FASFFHead_P345,ASPH}):
             args.append([ch[x] for x in f])
             if m is Segment:
