@@ -1031,6 +1031,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C1,
             C2,
             C2f,
+            dilation_block,
             C2f_Faster,  # CSW-YOLO中的
             C2f_Faster_CGLU,#CSW-YOLO中的
             CNeB,#ETSR-YOLO中的
@@ -1211,6 +1212,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         elif m is SDI:#jackjiao添加，目的是用SDI替换concat模块
             args = [[ch[x] for x in f]]
         elif m is Concat:
+            c2 = sum(ch[x] for x in f)
+        elif m is SimFusion_3in:#YOLO-TS论文里的
             c2 = sum(ch[x] for x in f)
         elif m is Fusion:#ESA-YOLO论文里的
             c2 = ch[f[0]]

@@ -25,6 +25,7 @@ from .MobileNetv3 import *
 from .MobileViTv1 import *
 from .OSA import *
 from .OSA_JACK import *
-from .CSW import *
-from .ETSR import *
-from .ESA import *
+from .CSW import *#CSW-YOLO
+from .ETSR import *#ETSR-YOLO
+from .ESA import *#ESA-YOLO
+from .YOLOTS import *#也是个论文

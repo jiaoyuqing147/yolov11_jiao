@@ -1,0 +1,45 @@
+# YOLO-TS-like object detection model
+# P2-only detection head
+
+nc: 45
+
+scales:
+
+  n: [ 0.33, 0.25, 1024 ]
+  s: [ 0.33, 0.50, 1024 ]
+  m: [ 0.67, 0.75, 768 ]
+  l: [1.00, 1.00, 512]
+  x: [ 1.00, 1.25, 512 ]
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv, [64, 3, 2]]        # 0-P1/2
+  - [-1, 1, C2f, [64, True]]         # 1
+
+  - [-1, 1, Conv, [128, 3, 2]]       # 2-P2/4
+  - [-1, 3, C2f, [128, True]]        # 3-P2/4
+
+  - [-1, 1, Conv, [256, 3, 2]]       # 4-P3/8
+  - [-1, 6, C2f, [256, True]]        # 5-P3/8
+
+  - [-1, 1, Conv, [512, 3, 2]]       # 6-P4/16
+  - [-1, 6, C2f, [512, True]]        # 7-P4/16
+
+  - [-1, 1, Conv, [1024, 3, 2]]      # 8-P5/32
+  - [-1, 3, C2f, [1024, True]]       # 9-P5/32
+  - [-1, 1, SPPF, [1024, 5]]         # 10
+
+head:
+  # Fuse P3, P4, P5
+  - [[5, 7, 10], 1, SimFusion_3in, []]          # 11
+  - [-1, 1, dilation_block, [256]]              # 12
+
+  # Upsample to P2 size
+  - [-1, 1, nn.Upsample, [None, 2, "bilinear"]] # 13
+
+  # Fuse with backbone P2
+  - [[-1, 3], 1, Concat, [1]]                   # 14
+  - [-1, 1, Conv, [128, 1, 1]]                  # 15
+  - [-1, 1, Conv, [128, 3, 1]]                  # 16
+
+  # Detect only on P2
+  - [[16], 1, Detect, [nc]]                     # 17
