@@ -199,6 +199,8 @@ train_yoga_*.py
 val_*.py
 train_distillation_*.py
 train_onlinedistillation_*.py
+train_yolov5*.py
+train_yolov8*.py
 #log files
 log*.txt
 #联网文件
