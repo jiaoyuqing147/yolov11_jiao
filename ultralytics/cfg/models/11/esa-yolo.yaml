@@ -1,7 +1,7 @@
 # Ultralytics YOLO 🚀, AGPL-3.0 license
 # ESA-YOLO based on YOLO11
 
-nc: 80
+nc: 130
 
 scales:
   n: [0.50, 0.25, 1024]
