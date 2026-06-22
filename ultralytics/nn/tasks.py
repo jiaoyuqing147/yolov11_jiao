@@ -1085,6 +1085,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C3k2_ARConv1,#from jack
             C3k2_ARConv2,#from jack
             C3k2_CNCM,#from jack news
+            C2f_DCAM,
+            C2f_DM,
+            RFA_C3k2,
+            C3k2_MSEIE,
          }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1127,6 +1131,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             RCSOSA_Lite_SmallObj,#from jack
             RLAB,  # from jack
             C3k2_CNCM,  # from jack news
+            C2f_DCAM,
+            C2f_DM,
+            RFA_C3k2,
+            C3k2_MSEIE,
         }
     )
 
