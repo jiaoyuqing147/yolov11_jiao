@@ -1182,6 +1182,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         elif m is Bi_FPN:             #add BiFPN jack 为了确保Bi_FPN 模块知道它需要融合多少个输入特征图
             length = len([ch[x] for x in f])
             args = [length]
+        elif m in {AFPN, GDNeck}:
+            c2 = ch[f[0]]
+            args = [c2, len([ch[x] for x in f]), *args]
         # start 主干网络下面的代码为自己手动添加,源代码中不包含, 字典中包含了所有的主干版本,根据你自己需要的模型添加对应的版本即可.
         elif m in {
             MobileNetV3_large_n, MobileNetV3_large_s, MobileNetV3_large_m, MobileNetV3_small_n, MobileNetV3_small_s,

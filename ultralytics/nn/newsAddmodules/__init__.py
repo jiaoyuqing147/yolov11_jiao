@@ -5,3 +5,5 @@ from .C2f_DM import *
 from .C2f_Faster_CGLU import *
 from .RFA_C3k2 import *
 from .C3k2_MSEIE import *
+from .AFPN import *
+from .GDNeck import *
