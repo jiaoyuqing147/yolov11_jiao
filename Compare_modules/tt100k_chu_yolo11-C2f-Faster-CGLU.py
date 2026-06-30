@@ -42,7 +42,7 @@ if __name__ == '__main__':
     model_info(model.model, verbose=True, imgsz=640)
 
     model.train(
-        data=r'ultralytics/cfg/datasets/tt100k_chu.yaml',
+        data=r'ultralytics/cfg/datasets/tt100k_desk.yaml',
         task='detect',
         imgsz=640,
         epochs=200,
@@ -55,7 +55,7 @@ if __name__ == '__main__':
         # 新对比实验默认不要 resume，避免误接旧实验
         resume=False,
 
-        amp=True,
+        amp=False,
         project=r'runsCompare_modules/tt100k_chu_yolo11-C2f-Faster-CGLU_train200',
         name='exp',
 

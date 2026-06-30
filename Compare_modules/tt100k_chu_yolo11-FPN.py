@@ -42,7 +42,7 @@ if __name__ == '__main__':
     model_info(model.model, verbose=True, imgsz=640)
 
     model.train(
-        data=r'ultralytics/cfg/datasets/tt100k_chu.yaml',
+        data=r'ultralytics/cfg/datasets/tt100k_desk.yaml',
         task='detect',
         imgsz=640,
         epochs=200,

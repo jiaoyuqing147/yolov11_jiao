@@ -1,0 +1,121 @@
+﻿case,rank_in_case,stem,score,details,gt_count,yolo_correct,yolo_missed,yolo_wrong,yolo_fp,kd_correct,kd_missed,kd_wrong,kd_fp,image_path
+Case1_FN_fixed,1,68464,22,pl100: background -> pl100; pl80: background -> pl80,2,0,2,0,0,2,0,0,0,F:\DataSets\tt100k\yolojack\images\val\68464.jpg
+Case1_FN_fixed,2,8957,22,pl100: background -> pl100; pl100: background -> pl100,2,0,2,0,0,2,0,0,0,F:\DataSets\tt100k\yolojack\images\val\8957.jpg
+Case1_FN_fixed,3,15613,12,pl80: background -> pl80,2,0,1,1,0,2,0,0,0,F:\DataSets\tt100k\yolojack\images\val\15613.jpg
+Case1_FN_fixed,4,8335,12,pl50: background -> pl50,2,0,1,1,0,2,0,0,0,F:\DataSets\tt100k\yolojack\images\val\8335.jpg
+Case1_FN_fixed,5,10654,11,pl80: background -> pl80,1,0,1,0,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\10654.jpg
+Case1_FN_fixed,6,11146,11,pl40: background -> pl40,1,0,1,0,0,1,0,0,1,F:\DataSets\tt100k\yolojack\images\val\11146.jpg
+Case1_FN_fixed,7,1129,11,pl60: background -> pl60,1,0,1,0,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\1129.jpg
+Case1_FN_fixed,8,11640,11,pl80: background -> pl80,2,0,2,0,0,1,0,1,0,F:\DataSets\tt100k\yolojack\images\val\11640.jpg
+Case1_FN_fixed,9,12914,11,pl80: background -> pl80,1,0,1,0,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\12914.jpg
+Case1_FN_fixed,10,13306,11,pl80: background -> pl80,1,0,1,0,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\13306.jpg
+Case1_FN_fixed,11,13435,11,pl50: background -> pl50,1,0,1,0,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\13435.jpg
+Case1_FN_fixed,12,1584,11,pl50: background -> pl50,1,0,1,0,0,1,0,0,1,F:\DataSets\tt100k\yolojack\images\val\1584.jpg
+Case1_FN_fixed,13,16617,11,pl40: background -> pl40,1,0,1,0,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\16617.jpg
+Case1_FN_fixed,14,18028,11,pl80: background -> pl80,1,0,1,0,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\18028.jpg
+Case1_FN_fixed,15,19643,11,pl60: background -> pl60,1,0,1,0,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\19643.jpg
+Case1_FN_fixed,16,21003,11,pl60: background -> pl60,2,1,1,0,0,2,0,0,1,F:\DataSets\tt100k\yolojack\images\val\21003.jpg
+Case1_FN_fixed,17,23020,11,pl50: background -> pl50,1,0,1,0,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\23020.jpg
+Case1_FN_fixed,18,26149,11,pl50: background -> pl50,1,0,1,0,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\26149.jpg
+Case1_FN_fixed,19,2638,11,pl100: background -> pl100,1,0,1,0,0,1,0,0,1,F:\DataSets\tt100k\yolojack\images\val\2638.jpg
+Case1_FN_fixed,20,27500,11,pl50: background -> pl50,1,0,1,0,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\27500.jpg
+Case1_FN_fixed,21,28772,11,pl40: background -> pl40,1,0,1,0,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\28772.jpg
+Case1_FN_fixed,22,28819,11,pl40: background -> pl40,1,0,1,0,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\28819.jpg
+Case1_FN_fixed,23,29350,11,pl50: background -> pl50,1,0,1,0,0,1,0,0,1,F:\DataSets\tt100k\yolojack\images\val\29350.jpg
+Case1_FN_fixed,24,29548,11,pl80: background -> pl80,2,1,1,0,0,2,0,0,0,F:\DataSets\tt100k\yolojack\images\val\29548.jpg
+Case1_FN_fixed,25,29669,11,pl80: background -> pl80,1,0,1,0,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\29669.jpg
+Case1_FN_fixed,26,30890,11,pl50: background -> pl50,1,0,1,0,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\30890.jpg
+Case1_FN_fixed,27,33515,11,pl60: background -> pl60,1,0,1,0,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\33515.jpg
+Case1_FN_fixed,28,33707,11,pl50: background -> pl50,1,0,1,0,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\33707.jpg
+Case1_FN_fixed,29,36343,11,pl60: background -> pl60,1,0,1,0,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\36343.jpg
+Case1_FN_fixed,30,37212,11,pl40: background -> pl40,1,0,1,0,0,1,0,0,1,F:\DataSets\tt100k\yolojack\images\val\37212.jpg
+Case2_Misclassification_fixed,1,15613,12,pl80: pl40 -> pl80,2,0,1,1,0,2,0,0,0,F:\DataSets\tt100k\yolojack\images\val\15613.jpg
+Case2_Misclassification_fixed,2,8335,12,pl40: pl60 -> pl40,2,0,1,1,0,2,0,0,0,F:\DataSets\tt100k\yolojack\images\val\8335.jpg
+Case2_Misclassification_fixed,3,10577,11,pl60: pl50 -> pl60,1,0,0,1,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\10577.jpg
+Case2_Misclassification_fixed,4,1069,11,pl60: pl40 -> pl60,1,0,0,1,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\1069.jpg
+Case2_Misclassification_fixed,5,11943,11,pl50: pl40 -> pl50,1,0,0,1,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\11943.jpg
+Case2_Misclassification_fixed,6,12342,11,pl50: pl40 -> pl50,1,0,0,1,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\12342.jpg
+Case2_Misclassification_fixed,7,13195,11,pl50: pl40 -> pl50,1,0,0,1,1,1,0,0,1,F:\DataSets\tt100k\yolojack\images\val\13195.jpg
+Case2_Misclassification_fixed,8,13322,11,pl40: pl50 -> pl40,2,1,0,1,2,2,0,0,0,F:\DataSets\tt100k\yolojack\images\val\13322.jpg
+Case2_Misclassification_fixed,9,14686,11,pl60: pl50 -> pl60,2,1,0,1,2,2,0,0,0,F:\DataSets\tt100k\yolojack\images\val\14686.jpg
+Case2_Misclassification_fixed,10,21541,11,pl40: pl50 -> pl40,1,0,0,1,0,1,0,0,1,F:\DataSets\tt100k\yolojack\images\val\21541.jpg
+Case2_Misclassification_fixed,11,23055,11,pl40: pl100 -> pl40,1,0,0,1,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\23055.jpg
+Case2_Misclassification_fixed,12,23260,11,pl80: pl60 -> pl80,1,0,0,1,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\23260.jpg
+Case2_Misclassification_fixed,13,23574,11,pl60: pl40 -> pl60,1,0,0,1,0,1,0,0,2,F:\DataSets\tt100k\yolojack\images\val\23574.jpg
+Case2_Misclassification_fixed,14,24445,11,pl60: pl40 -> pl60,1,0,0,1,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\24445.jpg
+Case2_Misclassification_fixed,15,25139,11,pl40: pl60 -> pl40,1,0,0,1,0,1,0,0,1,F:\DataSets\tt100k\yolojack\images\val\25139.jpg
+Case2_Misclassification_fixed,16,29877,11,pl50: pl40 -> pl50,1,0,0,1,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\29877.jpg
+Case2_Misclassification_fixed,17,34004,11,pl80: pl100 -> pl80,3,2,0,1,0,3,0,0,0,F:\DataSets\tt100k\yolojack\images\val\34004.jpg
+Case2_Misclassification_fixed,18,35211,11,pl80: pl100 -> pl80,2,1,0,1,1,2,0,0,0,F:\DataSets\tt100k\yolojack\images\val\35211.jpg
+Case2_Misclassification_fixed,19,35689,11,pl40: pl50 -> pl40,1,0,0,1,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\35689.jpg
+Case2_Misclassification_fixed,20,36930,11,pl80: pl40 -> pl80,1,0,0,1,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\36930.jpg
+Case2_Misclassification_fixed,21,40897,11,pl50: pl40 -> pl50,1,0,0,1,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\40897.jpg
+Case2_Misclassification_fixed,22,42180,11,pl60: pl50 -> pl60,1,0,0,1,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\42180.jpg
+Case2_Misclassification_fixed,23,44327,11,pl60: pl80 -> pl60,1,0,0,1,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\44327.jpg
+Case2_Misclassification_fixed,24,4477,11,pl60: pl80 -> pl60,1,0,0,1,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\4477.jpg
+Case2_Misclassification_fixed,25,45080,11,pl40: pl60 -> pl40,1,0,0,1,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\45080.jpg
+Case2_Misclassification_fixed,26,4560,11,pl80: pl40 -> pl80,1,0,0,1,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\4560.jpg
+Case2_Misclassification_fixed,27,46004,11,pl60: pl40 -> pl60,1,0,0,1,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\46004.jpg
+Case2_Misclassification_fixed,28,46348,11,pl50: pl40 -> pl50,1,0,0,1,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\46348.jpg
+Case2_Misclassification_fixed,29,47724,11,pl50: pl40 -> pl50,1,0,0,1,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\47724.jpg
+Case2_Misclassification_fixed,30,480,11,pl100: pl80 -> pl100,1,0,0,1,0,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\480.jpg
+Case3_FP_reduced,1,91532,50,"FP reduced: YOLOv11 5 ['pl100', 'pl80', 'pl80', 'pl100', 'pl100'] -> KD 0 []",0,0,0,0,5,0,0,0,0,F:\DataSets\tt100k\yolojack\images\val\91532.jpg
+Case3_FP_reduced,2,65953,31,"FP reduced: YOLOv11 3 ['pl100', 'pl100', 'pl100'] -> KD 0 []",1,0,1,0,3,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\65953.jpg
+Case3_FP_reduced,3,10286,30,"FP reduced: YOLOv11 3 ['pl100', 'pl100', 'pl100'] -> KD 0 []",0,0,0,0,3,0,0,0,0,F:\DataSets\tt100k\yolojack\images\val\10286.jpg
+Case3_FP_reduced,4,56176,30,"FP reduced: YOLOv11 3 ['pl50', 'pl40', 'pl50'] -> KD 0 []",0,0,0,0,3,0,0,0,0,F:\DataSets\tt100k\yolojack\images\val\56176.jpg
+Case3_FP_reduced,5,13322,21,"FP reduced: YOLOv11 2 ['pl60', 'pl40'] -> KD 0 []",2,1,0,1,2,2,0,0,0,F:\DataSets\tt100k\yolojack\images\val\13322.jpg
+Case3_FP_reduced,6,14686,21,"FP reduced: YOLOv11 2 ['pl40', 'pl60'] -> KD 0 []",2,1,0,1,2,2,0,0,0,F:\DataSets\tt100k\yolojack\images\val\14686.jpg
+Case3_FP_reduced,7,59218,21,"FP reduced: YOLOv11 2 ['pl40', 'pl60'] -> KD 0 []",1,0,1,0,2,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\59218.jpg
+Case3_FP_reduced,8,15513,20,"FP reduced: YOLOv11 3 ['pl80', 'pl80', 'pl100'] -> KD 1 ['pl60']",2,0,0,2,3,0,1,1,1,F:\DataSets\tt100k\yolojack\images\val\15513.jpg
+Case3_FP_reduced,9,17103,20,"FP reduced: YOLOv11 2 ['pl40', 'pl50'] -> KD 0 []",0,0,0,0,2,0,0,0,0,F:\DataSets\tt100k\yolojack\images\val\17103.jpg
+Case3_FP_reduced,10,20662,20,"FP reduced: YOLOv11 2 ['pl60', 'pl60'] -> KD 0 []",0,0,0,0,2,0,0,0,0,F:\DataSets\tt100k\yolojack\images\val\20662.jpg
+Case3_FP_reduced,11,45354,20,"FP reduced: YOLOv11 2 ['pl100', 'pl80'] -> KD 0 []",0,0,0,0,2,0,0,0,0,F:\DataSets\tt100k\yolojack\images\val\45354.jpg
+Case3_FP_reduced,12,48258,20,"FP reduced: YOLOv11 2 ['pl40', 'pl40'] -> KD 0 []",1,1,0,0,2,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\48258.jpg
+Case3_FP_reduced,13,82841,20,"FP reduced: YOLOv11 2 ['pl100', 'pl100'] -> KD 0 []",0,0,0,0,2,0,0,0,0,F:\DataSets\tt100k\yolojack\images\val\82841.jpg
+Case3_FP_reduced,14,87590,20,"FP reduced: YOLOv11 2 ['pl80', 'pl40'] -> KD 0 []",0,0,0,0,2,0,0,0,0,F:\DataSets\tt100k\yolojack\images\val\87590.jpg
+Case3_FP_reduced,15,11943,11,FP reduced: YOLOv11 1 ['pl50'] -> KD 0 [],1,0,0,1,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\11943.jpg
+Case3_FP_reduced,16,12342,11,FP reduced: YOLOv11 1 ['pl50'] -> KD 0 [],1,0,0,1,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\12342.jpg
+Case3_FP_reduced,17,24445,11,FP reduced: YOLOv11 1 ['pl60'] -> KD 0 [],1,0,0,1,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\24445.jpg
+Case3_FP_reduced,18,35211,11,FP reduced: YOLOv11 1 ['pl80'] -> KD 0 [],2,1,0,1,1,2,0,0,0,F:\DataSets\tt100k\yolojack\images\val\35211.jpg
+Case3_FP_reduced,19,35689,11,FP reduced: YOLOv11 1 ['pl40'] -> KD 0 [],1,0,0,1,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\35689.jpg
+Case3_FP_reduced,20,40897,11,FP reduced: YOLOv11 1 ['pl50'] -> KD 0 [],1,0,0,1,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\40897.jpg
+Case3_FP_reduced,21,47724,11,FP reduced: YOLOv11 1 ['pl50'] -> KD 0 [],1,0,0,1,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\47724.jpg
+Case3_FP_reduced,22,55994,11,FP reduced: YOLOv11 1 ['pl50'] -> KD 0 [],1,0,1,0,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\55994.jpg
+Case3_FP_reduced,23,57504,11,FP reduced: YOLOv11 1 ['pl40'] -> KD 0 [],1,0,1,0,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\57504.jpg
+Case3_FP_reduced,24,58114,11,FP reduced: YOLOv11 1 ['pl50'] -> KD 0 [],1,0,0,1,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\58114.jpg
+Case3_FP_reduced,25,58465,11,FP reduced: YOLOv11 1 ['pl40'] -> KD 0 [],1,0,0,1,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\58465.jpg
+Case3_FP_reduced,26,59132,11,FP reduced: YOLOv11 1 ['pl80'] -> KD 0 [],1,0,0,1,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\59132.jpg
+Case3_FP_reduced,27,60704,11,FP reduced: YOLOv11 1 ['pl40'] -> KD 0 [],1,0,0,1,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\60704.jpg
+Case3_FP_reduced,28,69201,11,FP reduced: YOLOv11 1 ['pl40'] -> KD 0 [],1,0,0,1,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\69201.jpg
+Case3_FP_reduced,29,69895,11,FP reduced: YOLOv11 1 ['pl50'] -> KD 0 [],2,0,1,1,1,1,0,1,0,F:\DataSets\tt100k\yolojack\images\val\69895.jpg
+Case3_FP_reduced,30,73145,11,FP reduced: YOLOv11 1 ['pl50'] -> KD 0 [],1,0,1,0,1,1,0,0,0,F:\DataSets\tt100k\yolojack\images\val\73145.jpg
+Case4_Remaining_failure,1,82657,33,pl80: KD wrong_class as pl100; pl80: KD missed as background; pl80: KD missed as background,4,0,4,0,0,1,2,1,0,F:\DataSets\tt100k\yolojack\images\val\82657.jpg
+Case4_Remaining_failure,2,15513,22,pl100: KD missed as background; pl80: KD wrong_class as pl60,2,0,0,2,3,0,1,1,1,F:\DataSets\tt100k\yolojack\images\val\15513.jpg
+Case4_Remaining_failure,3,269,22,pl80: KD wrong_class as pl100; pl80: KD wrong_class as pl100,4,4,0,0,0,2,0,2,2,F:\DataSets\tt100k\yolojack\images\val\269.jpg
+Case4_Remaining_failure,4,30290,22,pl60: KD wrong_class as pl40; pl60: KD wrong_class as pl50,2,0,0,2,1,0,0,2,0,F:\DataSets\tt100k\yolojack\images\val\30290.jpg
+Case4_Remaining_failure,5,4279,22,pl40: KD wrong_class as pl60; pl60: KD wrong_class as pl40,2,1,0,1,0,0,0,2,1,F:\DataSets\tt100k\yolojack\images\val\4279.jpg
+Case4_Remaining_failure,6,52168,22,pl100: KD wrong_class as pl80; pl100: KD wrong_class as pl80,4,2,0,2,0,2,0,2,0,F:\DataSets\tt100k\yolojack\images\val\52168.jpg
+Case4_Remaining_failure,7,6379,22,pl60: KD missed as background; pl60: KD missed as background,2,0,1,1,0,0,2,0,0,F:\DataSets\tt100k\yolojack\images\val\6379.jpg
+Case4_Remaining_failure,8,67343,22,pl100: KD wrong_class as pl80; pl100: KD wrong_class as pl80,2,1,1,0,0,0,0,2,0,F:\DataSets\tt100k\yolojack\images\val\67343.jpg
+Case4_Remaining_failure,9,78355,22,pl40: KD missed as background; pl80: KD missed as background,2,0,1,1,1,0,2,0,2,F:\DataSets\tt100k\yolojack\images\val\78355.jpg
+Case4_Remaining_failure,10,82881,22,pl40: KD wrong_class as pl50; pl40: KD wrong_class as pl60,2,1,0,1,0,0,0,2,2,F:\DataSets\tt100k\yolojack\images\val\82881.jpg
+Case4_Remaining_failure,11,10567,11,pl80: KD wrong_class as pl60,1,0,0,1,0,0,0,1,0,F:\DataSets\tt100k\yolojack\images\val\10567.jpg
+Case4_Remaining_failure,12,11129,11,pl60: KD wrong_class as pl50,1,0,1,0,0,0,0,1,0,F:\DataSets\tt100k\yolojack\images\val\11129.jpg
+Case4_Remaining_failure,13,11640,11,pl40: KD wrong_class as pl60,2,0,2,0,0,1,0,1,0,F:\DataSets\tt100k\yolojack\images\val\11640.jpg
+Case4_Remaining_failure,14,13432,11,pl60: KD wrong_class as pl80,1,1,0,0,1,0,0,1,0,F:\DataSets\tt100k\yolojack\images\val\13432.jpg
+Case4_Remaining_failure,15,15022,11,pl60: KD wrong_class as pl50,1,0,0,1,1,0,0,1,0,F:\DataSets\tt100k\yolojack\images\val\15022.jpg
+Case4_Remaining_failure,16,1559,11,pl50: KD wrong_class as pl40,1,0,1,0,0,0,0,1,0,F:\DataSets\tt100k\yolojack\images\val\1559.jpg
+Case4_Remaining_failure,17,16392,11,pl40: KD missed as background,1,0,1,0,0,0,1,0,0,F:\DataSets\tt100k\yolojack\images\val\16392.jpg
+Case4_Remaining_failure,18,17876,11,pl100: KD wrong_class as pl80,1,0,0,1,1,0,0,1,0,F:\DataSets\tt100k\yolojack\images\val\17876.jpg
+Case4_Remaining_failure,19,18888,11,pl80: KD missed as background,1,0,0,1,0,0,1,0,0,F:\DataSets\tt100k\yolojack\images\val\18888.jpg
+Case4_Remaining_failure,20,19842,11,pl60: KD missed as background,1,0,1,0,0,0,1,0,0,F:\DataSets\tt100k\yolojack\images\val\19842.jpg
+Case4_Remaining_failure,21,20906,11,pl50: KD wrong_class as pl40,1,0,1,0,0,0,0,1,0,F:\DataSets\tt100k\yolojack\images\val\20906.jpg
+Case4_Remaining_failure,22,21181,11,pl80: KD wrong_class as pl50,1,1,0,0,0,0,0,1,1,F:\DataSets\tt100k\yolojack\images\val\21181.jpg
+Case4_Remaining_failure,23,21434,11,pl60: KD wrong_class as pl80,1,0,0,1,1,0,0,1,0,F:\DataSets\tt100k\yolojack\images\val\21434.jpg
+Case4_Remaining_failure,24,21664,11,pl50: KD missed as background,1,0,1,0,0,0,1,0,0,F:\DataSets\tt100k\yolojack\images\val\21664.jpg
+Case4_Remaining_failure,25,21820,11,pl50: KD wrong_class as pl40,1,0,0,1,0,0,0,1,1,F:\DataSets\tt100k\yolojack\images\val\21820.jpg
+Case4_Remaining_failure,26,24038,11,pl50: KD missed as background,1,0,1,0,0,0,1,0,0,F:\DataSets\tt100k\yolojack\images\val\24038.jpg
+Case4_Remaining_failure,27,24335,11,pl50: KD wrong_class as pl60,2,1,0,1,1,1,0,1,0,F:\DataSets\tt100k\yolojack\images\val\24335.jpg
+Case4_Remaining_failure,28,24371,11,pl50: KD missed as background,1,0,1,0,0,0,1,0,0,F:\DataSets\tt100k\yolojack\images\val\24371.jpg
+Case4_Remaining_failure,29,25136,11,pl60: KD wrong_class as pl50,1,0,0,1,0,0,0,1,1,F:\DataSets\tt100k\yolojack\images\val\25136.jpg
+Case4_Remaining_failure,30,25438,11,pl80: KD wrong_class as pl100,2,1,0,1,0,1,0,1,0,F:\DataSets\tt100k\yolojack\images\val\25438.jpg
